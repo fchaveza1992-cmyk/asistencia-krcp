@@ -1964,7 +1964,7 @@ function toggleTheme() {
 // FIREBASE INTEGRATION
 // ═══════════════════════════════════════════════
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.8.1/firebase-app.js";
-import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.8.1/firebase-auth.js";
+import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged, EmailAuthProvider, reauthenticateWithCredential, updatePassword } from "https://www.gstatic.com/firebasejs/11.8.1/firebase-auth.js";
 import { getFirestore, collection, doc, getDocs, setDoc, getDoc, query, where, orderBy } from "https://www.gstatic.com/firebasejs/11.8.1/firebase-firestore.js";
 
 const firebaseConfig = {
@@ -1998,15 +1998,51 @@ function hideLoginScreen() {
   document.querySelector('header').style.display = 'flex';
 }
 
-async function doLogin() {
-  const email = document.getElementById('loginEmail').value.trim();
-  const pass  = document.getElementById('loginPass').value;
-  const errEl = document.getElementById('loginError');
+async function doCambiarPass() {
+  const actual   = document.getElementById('passActual').value;
+  const nueva    = document.getElementById('passNueva').value;
+  const confirm  = document.getElementById('passConfirm').value;
+  const errEl    = document.getElementById('cambiarPassError');
   errEl.textContent = '';
+
+  if (!actual || !nueva || !confirm) {
+    errEl.textContent = 'Completa todos los campos.'; return;
+  }
+  if (nueva.length < 6) {
+    errEl.textContent = 'La nueva contraseña debe tener al menos 6 caracteres.'; return;
+  }
+  if (nueva !== confirm) {
+    errEl.textContent = 'Las contraseñas no coinciden.'; return;
+  }
+
+  try {
+    // Reautenticar al usuario con la contraseña actual
+    const credential = EmailAuthProvider.credential(currentUser.email, actual);
+    await reauthenticateWithCredential(currentUser, credential);
+    // Cambiar la contraseña
+    await updatePassword(currentUser, nueva);
+    document.getElementById('modalCambiarPass').style.display = 'none';
+    showToast('Contraseña actualizada correctamente ✓', 'success');
+  } catch(e) {
+    if (e.code === 'auth/wrong-password' || e.code === 'auth/invalid-credential') {
+      errEl.textContent = 'La contraseña actual es incorrecta.';
+    } else {
+      errEl.textContent = 'Error: ' + e.message;
+    }
+  }
+}
+
+async function doLogin() {
+  let usuario = document.getElementById('loginEmail').value.trim().toLowerCase();
+  const pass   = document.getElementById('loginPass').value;
+  const errEl  = document.getElementById('loginError');
+  errEl.textContent = '';
+  // Agregar dominio automáticamente si no lo tiene
+  const email = usuario.includes('@') ? usuario : usuario + '@krcp.com';
   try {
     await signInWithEmailAndPassword(auth, email, pass);
   } catch(e) {
-    errEl.textContent = 'Correo o contraseña incorrectos.';
+    errEl.textContent = 'Usuario o contraseña incorrectos.';
   }
 }
 
@@ -2176,6 +2212,19 @@ function setSpStatus(s) {
   sp.innerHTML = '<span style="width:7px;height:7px;border-radius:50%;background:#f5c518;display:inline-block;margin-right:5px"></span>Conectando…';
   hr.insertBefore(sp, hr.firstChild);
   
+  // Agregar botón cambiar contraseña
+  const cambiarBtn = document.createElement('button');
+  cambiarBtn.className = 'btn';
+  cambiarBtn.textContent = '🔑 Mi contraseña';
+  cambiarBtn.onclick = () => {
+    document.getElementById('passActual').value = '';
+    document.getElementById('passNueva').value = '';
+    document.getElementById('passConfirm').value = '';
+    document.getElementById('cambiarPassError').textContent = '';
+    document.getElementById('modalCambiarPass').style.display = 'flex';
+  };
+  hr.appendChild(cambiarBtn);
+
   // Agregar botón logout
   const logoutBtn = document.createElement('button');
   logoutBtn.className = 'btn';
@@ -2191,6 +2240,31 @@ Object.defineProperty(window, '_pickerTarget', {
 });
 
 </script>
+
+
+<!-- MODAL CAMBIAR CONTRASEÑA -->
+<div id="modalCambiarPass" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:9998;align-items:center;justify-content:center;">
+  <div style="background:var(--c-surface);border:1px solid var(--c-border2);border-radius:16px;padding:32px;width:360px;display:flex;flex-direction:column;gap:14px;">
+    <div style="display:flex;justify-content:space-between;align-items:center">
+      <div style="font-size:16px;font-weight:600;color:var(--c-text)">Cambiar contraseña</div>
+      <button onclick="document.getElementById('modalCambiarPass').style.display='none'" style="background:none;border:none;color:var(--c-text2);font-size:20px;cursor:pointer">✕</button>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:6px">
+      <label style="font-size:12px;color:var(--c-text2);font-family:var(--mono);text-transform:uppercase;letter-spacing:.05em">Contraseña actual</label>
+      <input id="passActual" type="password" placeholder="••••••••" style="background:var(--c-surface2);border:1px solid var(--c-border2);color:var(--c-text);font-family:var(--font);font-size:14px;padding:10px 12px;border-radius:8px;outline:none;width:100%">
+    </div>
+    <div style="display:flex;flex-direction:column;gap:6px">
+      <label style="font-size:12px;color:var(--c-text2);font-family:var(--mono);text-transform:uppercase;letter-spacing:.05em">Nueva contraseña</label>
+      <input id="passNueva" type="password" placeholder="••••••••" style="background:var(--c-surface2);border:1px solid var(--c-border2);color:var(--c-text);font-family:var(--font);font-size:14px;padding:10px 12px;border-radius:8px;outline:none;width:100%">
+    </div>
+    <div style="display:flex;flex-direction:column;gap:6px">
+      <label style="font-size:12px;color:var(--c-text2);font-family:var(--mono);text-transform:uppercase;letter-spacing:.05em">Confirmar nueva contraseña</label>
+      <input id="passConfirm" type="password" placeholder="••••••••" style="background:var(--c-surface2);border:1px solid var(--c-border2);color:var(--c-text);font-family:var(--font);font-size:14px;padding:10px 12px;border-radius:8px;outline:none;width:100%">
+    </div>
+    <div id="cambiarPassError" style="color:var(--c-red);font-size:12px;min-height:16px;text-align:center"></div>
+    <button onclick="doCambiarPass()" style="background:var(--c-accent);border:none;color:#fff;font-family:var(--font);font-size:14px;font-weight:500;padding:12px;border-radius:8px;cursor:pointer;width:100%">Guardar nueva contraseña</button>
+  </div>
+</div>
 
 <!-- LOGIN OVERLAY -->
 <div id="loginOverlay" style="display:flex;position:fixed;inset:0;background:var(--c-bg);z-index:9999;align-items:center;justify-content:center;">
