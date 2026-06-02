@@ -1546,7 +1546,7 @@ function renderStats(workers, dates) {
     const att = state.attendance[w.id] || {};
     dates.forEach(d => {
       const m = att[dateStr(d)] || '';
-      if (m==='1'||m==='HE') asist++;
+      if (m==='A'||m==='HE') asist++;
       if (m==='F') faltas++;
       if (m==='V') vac++;
       if (m==='DM') dm++;
@@ -1634,7 +1634,7 @@ function markAllPresent() {
     dates.forEach(d => {
       const ds = dateStr(d);
       if (ds <= today && !state.attendance[w.id][ds]) {
-        state.attendance[w.id][ds] = '1';
+        state.attendance[w.id][ds] = 'A';
       }
     });
   });
@@ -2238,6 +2238,31 @@ Object.defineProperty(window, '_pickerTarget', {
   get: () => pickerTarget,
   configurable: true
 });
+
+// ═══════════════════════════════════════════════
+// EXPONER FUNCIONES AL SCOPE GLOBAL
+// (necesario porque el script usa type="module")
+// ═══════════════════════════════════════════════
+window.switchView      = switchView;
+window.setFilter       = setFilter;
+window.changeWeek      = changeWeek;
+window.toggleTheme     = toggleTheme;
+window.openModal       = openModal;
+window.closeModal      = closeModal;
+window.editWorker      = editWorker;
+window.deleteWorker    = deleteWorker;
+window.saveWorker      = saveWorker;
+window.markAllPresent  = markAllPresent;
+window.openPicker      = openPicker;
+window.exportExcel     = exportExcel;
+window.exportCSV       = exportCSV;
+window.exportSemana    = exportSemana;
+window.renderResumen   = renderResumen;
+window.renderPersonal  = renderPersonal;
+window.renderTable     = renderTable;
+window.doCambiarPass   = doCambiarPass;
+window.doLogin         = doLogin;
+window.doLogout        = doLogout;
 
 </script>
 
