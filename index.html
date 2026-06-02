@@ -1315,6 +1315,8 @@ function loadFromStorage() {
     if (s) Object.assign(state, JSON.parse(s));
     state.currentWeekStart = getMonday(state.currentWeekStart ? new Date(state.currentWeekStart) : new Date());
   } catch(e) {}
+  // Siempre resetear filtros al cargar para evitar tabla vacía
+  state.filters = { area: 'TODOS', guardia: 'TODOS' };
   if (!state.workers || state.workers.length === 0) loadDefaultWorkers();
 }
 
@@ -1323,6 +1325,7 @@ function saveData() {
     localStorage.setItem('kmmp_attendance_v2', JSON.stringify({
       workers: state.workers,
       attendance: state.attendance,
+      // NO guardar filters ni activeView para evitar tabla vacía al recargar
     }));
     showToast('Datos guardados correctamente', 'success');
   } catch(e) {
@@ -1938,6 +1941,18 @@ function showToast(msg, type='success') {
 // ═══════════════════════════════════════════════
 // INIT
 // ═══════════════════════════════════════════════
+// Limpiar filtros corruptos de versiones anteriores del localStorage
+try {
+  const s = localStorage.getItem('kmmp_attendance_v2');
+  if (s) {
+    const parsed = JSON.parse(s);
+    if (parsed.filters) {
+      delete parsed.filters;
+      localStorage.setItem('kmmp_attendance_v2', JSON.stringify(parsed));
+    }
+  }
+} catch(e) {}
+
 loadFromStorage();
 updateWeekDisplay();
 renderTable();
