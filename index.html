@@ -514,14 +514,16 @@
 
   .mark:hover { transform: scale(1.1); }
 
-  .mark-1 { background: rgba(45,212,160,0.15); color: var(--c-green); border-color: rgba(45,212,160,0.25); }
-  .mark-0 { background: rgba(255,92,122,0.15); color: var(--c-red); border-color: rgba(255,92,122,0.25); }
-  .mark-v { background: rgba(245,197,24,0.15); color: var(--c-yellow); border-color: rgba(245,197,24,0.25); }
-  .mark-dm { background: rgba(56,217,217,0.12); color: var(--c-teal); border-color: rgba(56,217,217,0.2); }
-  .mark-he { background: rgba(255,140,66,0.15); color: var(--c-orange); border-color: rgba(255,140,66,0.25); }
-  .mark-p { background: rgba(179,107,255,0.12); color: var(--c-purple); border-color: rgba(179,107,255,0.2); }
-  .mark-t { background: rgba(255,92,122,0.08); color: #ff8fa3; border-color: rgba(255,92,122,0.15); }
-  .mark-c { background: rgba(79,125,255,0.12); color: #7da4ff; border-color: rgba(79,125,255,0.2); }
+  .mark-1   { background: #27ae60; color: #fff; border-color: #27ae60; }
+  .mark-0   { background: #e74c3c; color: #fff; border-color: #e74c3c; }
+  .mark-v   { background: #e67e22; color: #fff; border-color: #e67e22; }
+  .mark-dm  { background: #bdc3c7; color: #fff; border-color: #bdc3c7; }
+  .mark-he  { background: #16a085; color: #fff; border-color: #16a085; }
+  .mark-p   { background: #8e44ad; color: #fff; border-color: #8e44ad; }
+  .mark-t   { background: #d4a017; color: #fff; border-color: #d4a017; }
+  .mark-c   { background: #2980b9; color: #fff; border-color: #2980b9; }
+  .mark-emo { background: #7f8c8d; color: #fff; border-color: #7f8c8d; }
+  .mark-ae  { background: #a8d8ea; color: #555; border-color: #a8d8ea; }
   .mark-empty { background: transparent; color: var(--c-text3); border-color: var(--c-border); font-size: 8px; }
 
   /* Summary cells */
@@ -1065,8 +1067,8 @@
           <div class="legend-item"><div class="legend-badge mark-p">P</div> Permiso</div>
           <div class="legend-item"><div class="legend-badge mark-t">T</div> Tardanza</div>
           <div class="legend-item"><div class="legend-badge mark-c">C</div> Curso</div>
-          <div class="legend-item"><div class="legend-badge mark-dm">EMO</div> Ex. Médico</div>
-          <div class="legend-item"><div class="legend-badge mark-c">AE</div> Act. Empresa</div>
+          <div class="legend-item"><div class="legend-badge mark-emo">EMO</div> Ex. Médico</div>
+          <div class="legend-item"><div class="legend-badge mark-ae">AE</div> Act. Empresa</div>
         </div>
       </div>
     </div>
@@ -1204,8 +1206,8 @@
   <div class="pick-opt" onclick="applyMark('P')"><div class="pick-badge mark-p">P</div><div class="pick-label">Permiso</div></div>
   <div class="pick-opt" onclick="applyMark('T')"><div class="pick-badge mark-t">T</div><div class="pick-label">Tardanz</div></div>
   <div class="pick-opt" onclick="applyMark('C')"><div class="pick-badge mark-c">C</div><div class="pick-label">Curso</div></div>
-  <div class="pick-opt" onclick="applyMark('EMO')"><div class="pick-badge mark-dm">EMO</div><div class="pick-label">Ex.Med</div></div>
-  <div class="pick-opt" onclick="applyMark('AE')"><div class="pick-badge mark-c">AE</div><div class="pick-label">Act.Emp</div></div>
+  <div class="pick-opt" onclick="applyMark('EMO')"><div class="pick-badge mark-emo">EMO</div><div class="pick-label">Ex.Med</div></div>
+  <div class="pick-opt" onclick="applyMark('AE')"><div class="pick-badge mark-ae">AE</div><div class="pick-label">Act.Emp</div></div>
 </div>
 
 <!-- MODAL ADD/EDIT WORKER -->
@@ -1529,7 +1531,7 @@ function getMarkClass(m) {
   const map = {
     'A':'mark-1','F':'mark-0','V':'mark-v','DM':'mark-dm',
     'HE':'mark-he','P':'mark-p','T':'mark-t','C':'mark-c',
-    'EMO':'mark-dm','AE':'mark-c'
+    'EMO':'mark-emo','AE':'mark-ae'
   };
   return map[m] || 'mark-empty';
 }
