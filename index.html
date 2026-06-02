@@ -1,0 +1,2220 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Control de Asistencia - Taller Eléctrico KRCP</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+  :root {
+    --c-bg: #0f1117;
+    --c-surface: #181b24;
+    --c-surface2: #1f2333;
+    --c-border: #2a2f42;
+    --c-border2: #353c54;
+    --c-text: #e8eaf2;
+    --c-text2: #8b90a8;
+    --c-text3: #545970;
+    --c-accent: #4f7dff;
+    --c-accent2: #7c5cff;
+    --c-green: #2dd4a0;
+    --c-red: #ff5c7a;
+    --c-yellow: #f5c518;
+    --c-orange: #ff8c42;
+    --c-purple: #b36bff;
+    --c-teal: #38d9d9;
+    --font: 'IBM Plex Sans', sans-serif;
+    --mono: 'IBM Plex Mono', monospace;
+    --r: 8px;
+    --r2: 12px;
+  }
+
+  html.light {
+    --c-bg: #f4f5f7;
+    --c-surface: #ffffff;
+    --c-surface2: #f0f1f5;
+    --c-border: #e2e4ec;
+    --c-border2: #cdd0de;
+    --c-text: #1a1d2e;
+    --c-text2: #5a5f7a;
+    --c-text3: #9ca0b8;
+    --c-accent: #3a6aff;
+    --c-accent2: #6644ff;
+    --c-green: #0fa878;
+    --c-red: #e83b5e;
+    --c-yellow: #d4a50a;
+    --c-orange: #e07020;
+    --c-purple: #8844ee;
+    --c-teal: #0fb5b5;
+  }
+
+  /* Theme toggle button */
+  .theme-toggle {
+    width: 36px;
+    height: 36px;
+    border-radius: var(--r);
+    border: 1px solid var(--c-border2);
+    background: var(--c-surface2);
+    color: var(--c-text2);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    transition: all 0.15s;
+    flex-shrink: 0;
+  }
+  .theme-toggle:hover { border-color: var(--c-accent); color: var(--c-accent); }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: var(--font);
+    background: var(--c-bg);
+    color: var(--c-text);
+    min-height: 100vh;
+    font-size: 14px;
+    line-height: 1.5;
+  }
+
+  /* ── HEADER ── */
+  header {
+    background: var(--c-surface);
+    border-bottom: 1px solid var(--c-border);
+    padding: 0 24px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    height: 56px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+
+  .logo {
+    font-family: var(--mono);
+    font-weight: 600;
+    font-size: 13px;
+    letter-spacing: 0.04em;
+    color: var(--c-accent);
+    white-space: nowrap;
+  }
+
+  .logo span { color: var(--c-text2); }
+
+  header nav {
+    display: flex;
+    gap: 2px;
+    margin-left: 24px;
+  }
+
+  .nav-btn {
+    background: none;
+    border: none;
+    color: var(--c-text2);
+    font-family: var(--font);
+    font-size: 13px;
+    padding: 6px 14px;
+    border-radius: var(--r);
+    cursor: pointer;
+    transition: all 0.15s;
+    white-space: nowrap;
+  }
+
+  .nav-btn:hover { background: var(--c-surface2); color: var(--c-text); }
+  .nav-btn.active { background: var(--c-surface2); color: var(--c-text); font-weight: 500; }
+
+  .header-right {
+    margin-left: auto;
+    display: flex;
+    gap: 8px;
+    align-items: center;
+  }
+
+  .btn {
+    padding: 7px 14px;
+    border-radius: var(--r);
+    border: 1px solid var(--c-border2);
+    background: var(--c-surface2);
+    color: var(--c-text);
+    font-family: var(--font);
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.15s;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    white-space: nowrap;
+  }
+
+  .btn:hover { border-color: var(--c-accent); color: var(--c-accent); }
+
+  .btn-primary {
+    background: var(--c-accent);
+    border-color: var(--c-accent);
+    color: #fff;
+    font-weight: 500;
+  }
+
+  .btn-primary:hover { background: #3d6aff; border-color: #3d6aff; color: #fff; }
+
+  /* ── LAYOUT ── */
+  .app { display: flex; height: calc(100vh - 56px); }
+
+  /* ── SIDEBAR ── */
+  .sidebar {
+    width: 240px;
+    background: var(--c-surface);
+    border-right: 1px solid var(--c-border);
+    display: flex;
+    flex-direction: column;
+    flex-shrink: 0;
+    overflow-y: auto;
+  }
+
+  .sidebar-section {
+    padding: 16px 12px 8px;
+  }
+
+  .sidebar-label {
+    font-family: var(--mono);
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    color: var(--c-text3);
+    text-transform: uppercase;
+    padding: 0 8px;
+    margin-bottom: 6px;
+  }
+
+  .sidebar-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 7px 8px;
+    border-radius: var(--r);
+    cursor: pointer;
+    color: var(--c-text2);
+    font-size: 13px;
+    transition: all 0.12s;
+    border: 1px solid transparent;
+  }
+
+  .sidebar-item:hover { background: var(--c-surface2); color: var(--c-text); }
+  .sidebar-item.active { background: var(--c-surface2); color: var(--c-text); border-color: var(--c-border2); }
+
+  .sidebar-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  .sidebar-count {
+    margin-left: auto;
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--c-text3);
+  }
+
+  .date-nav {
+    padding: 12px 12px 16px;
+    border-top: 1px solid var(--c-border);
+    margin-top: auto;
+  }
+
+  .date-label {
+    font-size: 11px;
+    color: var(--c-text3);
+    margin-bottom: 8px;
+  }
+
+  .date-display {
+    font-family: var(--mono);
+    font-size: 13px;
+    color: var(--c-text);
+    font-weight: 600;
+    margin-bottom: 8px;
+  }
+
+  .week-nav {
+    display: flex;
+    gap: 6px;
+  }
+
+  .week-nav button {
+    flex: 1;
+    padding: 5px;
+    border: 1px solid var(--c-border2);
+    background: var(--c-surface2);
+    color: var(--c-text2);
+    border-radius: var(--r);
+    cursor: pointer;
+    font-size: 12px;
+    transition: all 0.12s;
+  }
+
+  .week-nav button:hover { border-color: var(--c-accent); color: var(--c-accent); }
+
+  /* ── MAIN ── */
+  main {
+    flex: 1;
+    overflow: auto;
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  /* ── PAGE HEADER ── */
+  .page-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+  }
+
+  .page-title {
+    font-size: 20px;
+    font-weight: 600;
+    color: var(--c-text);
+  }
+
+  .page-sub {
+    font-size: 13px;
+    color: var(--c-text2);
+    margin-top: 2px;
+  }
+
+  /* ── STATS ── */
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 12px;
+  }
+
+  .stat-card {
+    background: var(--c-surface);
+    border: 1px solid var(--c-border);
+    border-radius: var(--r2);
+    padding: 14px 16px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .stat-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+  }
+
+  .stat-card.green::before { background: var(--c-green); }
+  .stat-card.red::before { background: var(--c-red); }
+  .stat-card.yellow::before { background: var(--c-yellow); }
+  .stat-card.blue::before { background: var(--c-accent); }
+  .stat-card.purple::before { background: var(--c-purple); }
+  .stat-card.orange::before { background: var(--c-orange); }
+
+  .stat-label {
+    font-size: 11px;
+    color: var(--c-text3);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    font-family: var(--mono);
+    margin-bottom: 6px;
+  }
+
+  .stat-value {
+    font-size: 28px;
+    font-weight: 600;
+    font-family: var(--mono);
+    line-height: 1;
+    margin-bottom: 4px;
+  }
+
+  .stat-card.green .stat-value { color: var(--c-green); }
+  .stat-card.red .stat-value { color: var(--c-red); }
+  .stat-card.yellow .stat-value { color: var(--c-yellow); }
+  .stat-card.blue .stat-value { color: var(--c-accent); }
+  .stat-card.purple .stat-value { color: var(--c-purple); }
+  .stat-card.orange .stat-value { color: var(--c-orange); }
+
+  .stat-sub {
+    font-size: 11px;
+    color: var(--c-text3);
+  }
+
+  /* ── FILTERS BAR ── */
+  .filters-bar {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+
+  .filter-select {
+    background: var(--c-surface);
+    border: 1px solid var(--c-border2);
+    color: var(--c-text);
+    font-family: var(--font);
+    font-size: 13px;
+    padding: 6px 10px;
+    border-radius: var(--r);
+    cursor: pointer;
+    outline: none;
+    transition: border-color 0.15s;
+  }
+
+  .filter-select:hover, .filter-select:focus { border-color: var(--c-accent); }
+
+  .search-box {
+    background: var(--c-surface);
+    border: 1px solid var(--c-border2);
+    color: var(--c-text);
+    font-family: var(--font);
+    font-size: 13px;
+    padding: 6px 12px;
+    border-radius: var(--r);
+    outline: none;
+    width: 200px;
+    transition: border-color 0.15s;
+  }
+
+  .search-box::placeholder { color: var(--c-text3); }
+  .search-box:focus { border-color: var(--c-accent); }
+
+  /* ── ATTENDANCE TABLE ── */
+  .table-wrapper {
+    background: var(--c-surface);
+    border: 1px solid var(--c-border);
+    border-radius: var(--r2);
+    overflow: hidden;
+  }
+
+  .table-header-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--c-border);
+  }
+
+  .table-title {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--c-text);
+  }
+
+  .table-scroll {
+    overflow-x: auto;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+  }
+
+  thead th {
+    padding: 10px 12px;
+    text-align: left;
+    font-size: 11px;
+    font-family: var(--mono);
+    color: var(--c-text3);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    border-bottom: 1px solid var(--c-border);
+    white-space: nowrap;
+    background: var(--c-surface);
+  }
+
+  thead th.day-col {
+    text-align: center;
+    padding: 10px 6px;
+    font-size: 10px;
+    min-width: 36px;
+  }
+
+  tbody tr {
+    border-bottom: 1px solid var(--c-border);
+    transition: background 0.1s;
+  }
+
+  tbody tr:last-child { border-bottom: none; }
+  tbody tr:hover { background: var(--c-surface2); }
+
+  tbody td {
+    padding: 10px 12px;
+    vertical-align: middle;
+    white-space: nowrap;
+  }
+
+  .cell-name {
+    font-weight: 500;
+    color: var(--c-text);
+    max-width: 180px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .cell-meta {
+    color: var(--c-text2);
+    font-family: var(--mono);
+    font-size: 12px;
+  }
+
+  .cell-area {
+    display: inline-flex;
+    align-items: center;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 500;
+    white-space: nowrap;
+  }
+
+  .cell-guard {
+    display: inline-flex;
+    align-items: center;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 600;
+    font-family: var(--mono);
+  }
+
+  .guard-A { background: rgba(79,125,255,0.12); color: #6b9fff; }
+  .guard-B { background: rgba(179,107,255,0.12); color: #c48aff; }
+
+  /* Day cells */
+  .day-cell {
+    text-align: center;
+    padding: 6px 4px;
+    min-width: 36px;
+  }
+
+  .mark {
+    width: 28px;
+    height: 28px;
+    border-radius: 6px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    font-family: var(--mono);
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.12s;
+    border: 1px solid transparent;
+    user-select: none;
+  }
+
+  .mark:hover { transform: scale(1.1); }
+
+  .mark-1 { background: rgba(45,212,160,0.15); color: var(--c-green); border-color: rgba(45,212,160,0.25); }
+  .mark-0 { background: rgba(255,92,122,0.15); color: var(--c-red); border-color: rgba(255,92,122,0.25); }
+  .mark-v { background: rgba(245,197,24,0.15); color: var(--c-yellow); border-color: rgba(245,197,24,0.25); }
+  .mark-dm { background: rgba(56,217,217,0.12); color: var(--c-teal); border-color: rgba(56,217,217,0.2); }
+  .mark-he { background: rgba(255,140,66,0.15); color: var(--c-orange); border-color: rgba(255,140,66,0.25); }
+  .mark-p { background: rgba(179,107,255,0.12); color: var(--c-purple); border-color: rgba(179,107,255,0.2); }
+  .mark-t { background: rgba(255,92,122,0.08); color: #ff8fa3; border-color: rgba(255,92,122,0.15); }
+  .mark-c { background: rgba(79,125,255,0.12); color: #7da4ff; border-color: rgba(79,125,255,0.2); }
+  .mark-empty { background: transparent; color: var(--c-text3); border-color: var(--c-border); font-size: 8px; }
+
+  /* Summary cells */
+  .cell-sum {
+    text-align: center;
+    font-family: var(--mono);
+    font-size: 12px;
+    font-weight: 600;
+  }
+
+  /* ── MARK PICKER ── */
+  .mark-picker {
+    position: fixed;
+    background: var(--c-surface);
+    border: 1px solid var(--c-border2);
+    border-radius: var(--r2);
+    padding: 8px;
+    display: none;
+    z-index: 500;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+    grid-template-columns: repeat(4, 1fr);
+    gap: 4px;
+    width: 180px;
+  }
+
+  .mark-picker.show { display: grid; }
+
+  .pick-opt {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    padding: 6px 4px;
+    border-radius: var(--r);
+    cursor: pointer;
+    transition: background 0.1s;
+  }
+
+  .pick-opt:hover { background: var(--c-surface2); }
+
+  .pick-badge {
+    width: 26px;
+    height: 26px;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    font-weight: 600;
+    font-family: var(--mono);
+  }
+
+  .pick-label {
+    font-size: 9px;
+    color: var(--c-text3);
+    text-align: center;
+  }
+
+  /* ── LEGEND ── */
+  .legend {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    align-items: center;
+    padding: 12px 16px;
+    border-top: 1px solid var(--c-border);
+    background: var(--c-surface);
+  }
+
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 11px;
+    color: var(--c-text2);
+  }
+
+  .legend-badge {
+    width: 18px;
+    height: 18px;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 9px;
+    font-weight: 600;
+    font-family: var(--mono);
+  }
+
+  /* ── VIEWS ── */
+  .view { display: none; }
+  .view.active { display: flex; flex-direction: column; gap: 20px; }
+
+  /* ── RESUMEN ── */
+  .resumen-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+
+  .resumen-card {
+    background: var(--c-surface);
+    border: 1px solid var(--c-border);
+    border-radius: var(--r2);
+    overflow: hidden;
+  }
+
+  .resumen-card-header {
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--c-border);
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--c-text);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .worker-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 16px;
+    border-bottom: 1px solid var(--c-border);
+    transition: background 0.1s;
+  }
+
+  .worker-row:last-child { border-bottom: none; }
+  .worker-row:hover { background: var(--c-surface2); }
+
+  .worker-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    font-weight: 600;
+    flex-shrink: 0;
+  }
+
+  .worker-name {
+    flex: 1;
+    font-size: 13px;
+    color: var(--c-text);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .worker-meta {
+    font-size: 11px;
+    color: var(--c-text3);
+    font-family: var(--mono);
+  }
+
+  .bar-mini {
+    display: flex;
+    gap: 2px;
+    margin-top: 2px;
+  }
+
+  .bar-seg {
+    height: 4px;
+    border-radius: 2px;
+  }
+
+  /* ── PROGRESS BAR ── */
+  .progress-bar {
+    height: 6px;
+    background: var(--c-surface2);
+    border-radius: 3px;
+    overflow: hidden;
+    margin-top: 6px;
+  }
+
+  .progress-fill {
+    height: 100%;
+    border-radius: 3px;
+    transition: width 0.4s ease;
+  }
+
+  /* ── MODAL ── */
+  .modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.6);
+    z-index: 200;
+    display: none;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .modal-overlay.show { display: flex; }
+
+  .modal {
+    background: var(--c-surface);
+    border: 1px solid var(--c-border2);
+    border-radius: var(--r2);
+    width: 500px;
+    max-width: 95vw;
+    max-height: 90vh;
+    overflow-y: auto;
+  }
+
+  .modal-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--c-border);
+  }
+
+  .modal-title {
+    font-size: 15px;
+    font-weight: 500;
+  }
+
+  .modal-close {
+    background: none;
+    border: none;
+    color: var(--c-text2);
+    cursor: pointer;
+    font-size: 18px;
+    padding: 2px;
+    line-height: 1;
+    transition: color 0.12s;
+  }
+
+  .modal-close:hover { color: var(--c-text); }
+
+  .modal-body {
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  .form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .form-label {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--c-text2);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    font-family: var(--mono);
+  }
+
+  .form-input {
+    background: var(--c-surface2);
+    border: 1px solid var(--c-border2);
+    color: var(--c-text);
+    font-family: var(--font);
+    font-size: 14px;
+    padding: 8px 12px;
+    border-radius: var(--r);
+    outline: none;
+    transition: border-color 0.15s;
+    width: 100%;
+  }
+
+  .form-input:focus { border-color: var(--c-accent); }
+
+  .form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+
+  .modal-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    padding: 14px 20px;
+    border-top: 1px solid var(--c-border);
+  }
+
+  /* ── TOAST ── */
+  .toast {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    background: var(--c-surface);
+    border: 1px solid var(--c-border2);
+    border-radius: var(--r);
+    padding: 10px 16px;
+    font-size: 13px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    z-index: 600;
+    transform: translateY(80px);
+    opacity: 0;
+    transition: all 0.25s ease;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.4);
+  }
+
+  .toast.show { transform: translateY(0); opacity: 1; }
+  .toast.success { border-color: rgba(45,212,160,0.4); }
+  .toast.error { border-color: rgba(255,92,122,0.4); }
+
+  .toast-dot { width: 6px; height: 6px; border-radius: 50%; }
+  .toast.success .toast-dot { background: var(--c-green); }
+  .toast.error .toast-dot { background: var(--c-red); }
+
+  /* ── EMPTY STATE ── */
+  .empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 48px;
+    color: var(--c-text3);
+    gap: 8px;
+    text-align: center;
+  }
+
+  .empty-icon { font-size: 32px; }
+  .empty-title { font-size: 14px; color: var(--c-text2); }
+  .empty-sub { font-size: 13px; }
+
+  /* ── EXPORT ── */
+  .export-options {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+
+  .export-card {
+    background: var(--c-surface2);
+    border: 1px solid var(--c-border2);
+    border-radius: var(--r);
+    padding: 14px;
+    cursor: pointer;
+    transition: all 0.15s;
+    text-align: left;
+  }
+
+  .export-card:hover { border-color: var(--c-accent); background: rgba(79,125,255,0.06); }
+
+  .export-icon { font-size: 20px; margin-bottom: 8px; }
+  .export-name { font-size: 13px; font-weight: 500; color: var(--c-text); margin-bottom: 2px; }
+  .export-desc { font-size: 11px; color: var(--c-text3); }
+
+  /* ── SCROLLBAR ── */
+  ::-webkit-scrollbar { width: 5px; height: 5px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--c-border2); border-radius: 99px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--c-text3); }
+
+  /* ── TOOLTIP ── */
+  [data-tip] { position: relative; }
+  [data-tip]:hover::after {
+    content: attr(data-tip);
+    position: absolute;
+    bottom: calc(100% + 6px);
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--c-surface2);
+    border: 1px solid var(--c-border2);
+    color: var(--c-text);
+    font-size: 11px;
+    padding: 3px 8px;
+    border-radius: 4px;
+    white-space: nowrap;
+    pointer-events: none;
+    z-index: 50;
+  }
+
+  .chip {
+    display: inline-flex;
+    align-items: center;
+    padding: 1px 6px;
+    border-radius: 3px;
+    font-size: 10px;
+    font-weight: 600;
+    font-family: var(--mono);
+    white-space: nowrap;
+  }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header>
+  <div class="logo">KRCP <span>/ ASISTENCIA</span></div>
+  <nav id="mainNav">
+    <button class="nav-btn active" onclick="switchView('registro')">Registro</button>
+    <button class="nav-btn" onclick="switchView('resumen')">Resumen</button>
+    <button class="nav-btn" onclick="switchView('personal')">Personal</button>
+    <button class="nav-btn" onclick="switchView('exportar')">Exportar</button>
+  </nav>
+  <div class="header-right">
+    <button class="theme-toggle" id="themeToggle" onclick="toggleTheme()" title="Cambiar tema">🌙</button>
+    <button class="btn" onclick="openModal('addWorker')">+ Técnico</button>
+    <button class="btn btn-primary" onclick="saveData()">💾 Guardar</button>
+  </div>
+</header>
+
+<div class="app">
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="sidebar-section">
+      <div class="sidebar-label">Área</div>
+      <div class="sidebar-item active" onclick="setFilter('area','TODOS')">
+        <span class="sidebar-dot" style="background:var(--c-accent)"></span>
+        Todos
+        <span class="sidebar-count" id="cnt-todos">0</span>
+      </div>
+      <div class="sidebar-item" onclick="setFilter('area','BLOWER')">
+        <span class="sidebar-dot" style="background:#38d9d9"></span>
+        Blower
+        <span class="sidebar-count" id="cnt-blow">0</span>
+      </div>
+      <div class="sidebar-item" onclick="setFilter('area','MANTENIMIENTO')">
+        <span class="sidebar-dot" style="background:#4f7dff"></span>
+        Mantenimiento
+        <span class="sidebar-count" id="cnt-mant">0</span>
+      </div>
+      <div class="sidebar-item" onclick="setFilter('area','MOTOR ELECTRICO')">
+        <span class="sidebar-dot" style="background:#f5c518"></span>
+        Motor Eléctrico
+        <span class="sidebar-count" id="cnt-me">0</span>
+      </div>
+      <div class="sidebar-item" onclick="setFilter('area','ALTERNADORES')">
+        <span class="sidebar-dot" style="background:#ff5c7a"></span>
+        Alternadores
+        <span class="sidebar-count" id="cnt-alt">0</span>
+      </div>
+      <div class="sidebar-item" onclick="setFilter('area','MOTOR DE TRACCION')">
+        <span class="sidebar-dot" style="background:#ff8c42"></span>
+        Motor Tracción
+        <span class="sidebar-count" id="cnt-mt">0</span>
+      </div>
+      <div class="sidebar-item" onclick="setFilter('area','TREN DE POTENCIA')">
+        <span class="sidebar-dot" style="background:#b36bff"></span>
+        Tren Potencia
+        <span class="sidebar-count" id="cnt-tp">0</span>
+      </div>
+      <div class="sidebar-item" onclick="setFilter('area','FRENOS')">
+        <span class="sidebar-dot" style="background:#e83b5e"></span>
+        Frenos
+        <span class="sidebar-count" id="cnt-fren">0</span>
+      </div>
+      <div class="sidebar-item" onclick="setFilter('area','SUPERVISION')">
+        <span class="sidebar-dot" style="background:#2dd4a0"></span>
+        Supervisión
+        <span class="sidebar-count" id="cnt-sup">0</span>
+      </div>
+    </div>
+
+    <div class="sidebar-section">
+      <div class="sidebar-label">Guardia</div>
+      <div class="sidebar-item" onclick="setFilter('guardia','TODOS')">
+        <span class="sidebar-dot" style="background:var(--c-text3)"></span>
+        Todas
+      </div>
+      <div class="sidebar-item" onclick="setFilter('guardia','Guardia A')">
+        <span class="sidebar-dot" style="background:#6b9fff"></span>
+        Guardia A
+      </div>
+      <div class="sidebar-item" onclick="setFilter('guardia','Guardia B')">
+        <span class="sidebar-dot" style="background:#c48aff"></span>
+        Guardia B
+      </div>
+      <div class="sidebar-item" onclick="setFilter('guardia','Guardia A-1')">
+        <span class="sidebar-dot" style="background:#85b7eb"></span>
+        Guardia A-1
+      </div>
+      <div class="sidebar-item" onclick="setFilter('guardia','Guardia A-2')">
+        <span class="sidebar-dot" style="background:#378add"></span>
+        Guardia A-2
+      </div>
+      <div class="sidebar-item" onclick="setFilter('guardia','Guardia B-1')">
+        <span class="sidebar-dot" style="background:#afa9ec"></span>
+        Guardia B-1
+      </div>
+      <div class="sidebar-item" onclick="setFilter('guardia','Guardia B-2')">
+        <span class="sidebar-dot" style="background:#7f77dd"></span>
+        Guardia B-2
+      </div>
+    </div>
+
+    <div class="date-nav">
+      <div class="date-label">Semana actual</div>
+      <div class="date-display" id="weekDisplay">Sem. 1 — Ene 2026</div>
+      <div class="week-nav">
+        <button onclick="changeWeek(-1)">← Ant</button>
+        <button onclick="changeWeek(1)">Sig →</button>
+      </div>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <main>
+
+    <!-- ── VIEW: REGISTRO ── -->
+    <div id="view-registro" class="view active">
+      <div class="page-header">
+        <div>
+          <div class="page-title">Registro de Asistencia</div>
+          <div class="page-sub" id="weekRangeText">Cargando...</div>
+        </div>
+        <div style="display:flex;gap:8px">
+          <input type="text" class="search-box" placeholder="🔍 Buscar técnico..." id="searchBox" oninput="renderTable()">
+          <select class="filter-select" id="turnoFilter" onchange="renderTable()">
+            <option value="TODOS">Todos los turnos</option>
+            <option value="DIA">Día</option>
+            <option value="NOCHE">Noche</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="stats-grid" id="statsGrid"></div>
+
+      <div class="table-wrapper">
+        <div class="table-header-bar">
+          <div class="table-title" id="tableTitle">Lista de técnicos</div>
+          <div style="display:flex;gap:8px">
+            <button class="btn" onclick="markAllPresent()">✓ Marcar todos presentes</button>
+          </div>
+        </div>
+        <div class="table-scroll">
+          <table id="attendanceTable">
+            <thead id="tableHead"></thead>
+            <tbody id="tableBody"></tbody>
+          </table>
+        </div>
+        <div class="legend">
+          <div class="legend-item"><div class="legend-badge mark-1">A</div> Asistió</div>
+          <div class="legend-item"><div class="legend-badge mark-0">F</div> Faltó</div>
+          <div class="legend-item"><div class="legend-badge mark-v">V</div> Vacaciones</div>
+          <div class="legend-item"><div class="legend-badge mark-dm">DM</div> Desc. Médico</div>
+          <div class="legend-item"><div class="legend-badge mark-he">HE</div> Hora Extra</div>
+          <div class="legend-item"><div class="legend-badge mark-p">P</div> Permiso</div>
+          <div class="legend-item"><div class="legend-badge mark-t">T</div> Tardanza</div>
+          <div class="legend-item"><div class="legend-badge mark-c">C</div> Curso</div>
+          <div class="legend-item"><div class="legend-badge mark-dm">EMO</div> Ex. Médico</div>
+          <div class="legend-item"><div class="legend-badge mark-c">AE</div> Act. Empresa</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── VIEW: RESUMEN ── -->
+    <div id="view-resumen" class="view">
+      <div class="page-header">
+        <div>
+          <div class="page-title">Resumen General</div>
+          <div class="page-sub">Estadísticas consolidadas del mes</div>
+        </div>
+        <select class="filter-select" id="resumenMes" onchange="renderResumen()">
+          <option value="0">Enero</option><option value="1">Febrero</option>
+          <option value="2">Marzo</option><option value="3">Abril</option>
+          <option value="4">Mayo</option><option value="5">Junio</option>
+          <option value="6">Julio</option><option value="7">Agosto</option>
+          <option value="8">Septiembre</option><option value="9">Octubre</option>
+          <option value="10">Noviembre</option><option value="11">Diciembre</option>
+        </select>
+      </div>
+      <div class="stats-grid" id="resumenStats"></div>
+      <div class="resumen-grid">
+        <div class="resumen-card">
+          <div class="resumen-card-header">
+            <span>Asistencia por área</span>
+          </div>
+          <div id="areaChart" style="padding:16px;display:flex;flex-direction:column;gap:10px"></div>
+        </div>
+        <div class="resumen-card">
+          <div class="resumen-card-header">
+            <span>Técnicos destacados</span>
+            <span style="font-size:11px;color:var(--c-text3)">mayor asistencia</span>
+          </div>
+          <div id="topWorkers"></div>
+        </div>
+      </div>
+      <div class="resumen-card">
+        <div class="resumen-card-header">
+          <span>Detalle por técnico</span>
+        </div>
+        <div class="table-scroll">
+          <table id="resumenTable">
+            <thead>
+              <tr>
+                <th style="padding:10px 12px;font-size:11px;font-family:var(--mono);color:var(--c-text3);text-transform:uppercase;border-bottom:1px solid var(--c-border)">Técnico</th>
+                <th style="padding:10px 12px;font-size:11px;font-family:var(--mono);color:var(--c-text3);text-transform:uppercase;border-bottom:1px solid var(--c-border);text-align:center">Área</th>
+                <th style="padding:10px 12px;font-size:11px;font-family:var(--mono);color:var(--c-text3);text-transform:uppercase;border-bottom:1px solid var(--c-border);text-align:center">Asist.</th>
+                <th style="padding:10px 12px;font-size:11px;font-family:var(--mono);color:var(--c-text3);text-transform:uppercase;border-bottom:1px solid var(--c-border);text-align:center">Faltas</th>
+                <th style="padding:10px 12px;font-size:11px;font-family:var(--mono);color:var(--c-text3);text-transform:uppercase;border-bottom:1px solid var(--c-border);text-align:center">Vac.</th>
+                <th style="padding:10px 12px;font-size:11px;font-family:var(--mono);color:var(--c-text3);text-transform:uppercase;border-bottom:1px solid var(--c-border);text-align:center">DM</th>
+                <th style="padding:10px 12px;font-size:11px;font-family:var(--mono);color:var(--c-text3);text-transform:uppercase;border-bottom:1px solid var(--c-border);text-align:center">HE</th>
+                <th style="padding:10px 12px;font-size:11px;font-family:var(--mono);color:var(--c-text3);text-transform:uppercase;border-bottom:1px solid var(--c-border);text-align:center">%</th>
+              </tr>
+            </thead>
+            <tbody id="resumenTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── VIEW: PERSONAL ── -->
+    <div id="view-personal" class="view">
+      <div class="page-header">
+        <div>
+          <div class="page-title">Gestión de Personal</div>
+          <div class="page-sub" id="personalCount">Cargando...</div>
+        </div>
+        <button class="btn btn-primary" onclick="openModal('addWorker')">+ Agregar técnico</button>
+      </div>
+      <div class="table-wrapper">
+        <div class="table-header-bar">
+          <input type="text" class="search-box" placeholder="🔍 Buscar..." id="searchPersonal" oninput="renderPersonal()" style="width:220px">
+        </div>
+        <div class="table-scroll">
+          <table>
+            <thead>
+              <tr>
+                <th style="padding:10px 12px;font-size:11px;font-family:var(--mono);color:var(--c-text3);text-transform:uppercase;border-bottom:1px solid var(--c-border)">#</th>
+                <th style="padding:10px 12px;font-size:11px;font-family:var(--mono);color:var(--c-text3);text-transform:uppercase;border-bottom:1px solid var(--c-border)">Nombre</th>
+                <th style="padding:10px 12px;font-size:11px;font-family:var(--mono);color:var(--c-text3);text-transform:uppercase;border-bottom:1px solid var(--c-border)">DNI</th>
+                <th style="padding:10px 12px;font-size:11px;font-family:var(--mono);color:var(--c-text3);text-transform:uppercase;border-bottom:1px solid var(--c-border)">CUC</th>
+                <th style="padding:10px 12px;font-size:11px;font-family:var(--mono);color:var(--c-text3);text-transform:uppercase;border-bottom:1px solid var(--c-border)">Área</th>
+                <th style="padding:10px 12px;font-size:11px;font-family:var(--mono);color:var(--c-text3);text-transform:uppercase;border-bottom:1px solid var(--c-border)">Guardia</th>
+                <th style="padding:10px 12px;font-size:11px;font-family:var(--mono);color:var(--c-text3);text-transform:uppercase;border-bottom:1px solid var(--c-border)">Acciones</th>
+              </tr>
+            </thead>
+            <tbody id="personalTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── VIEW: EXPORTAR ── -->
+    <div id="view-exportar" class="view">
+      <div class="page-header">
+        <div>
+          <div class="page-title">Exportar Datos</div>
+          <div class="page-sub">Genera reportes en distintos formatos</div>
+        </div>
+      </div>
+      <div class="export-options">
+        <div class="export-card" onclick="exportExcel()">
+          <div class="export-icon">📊</div>
+          <div class="export-name">Excel (.xlsx)</div>
+          <div class="export-desc">Asistencia mensual completa con todos los técnicos</div>
+        </div>
+        <div class="export-card" onclick="exportCSV()">
+          <div class="export-icon">📄</div>
+          <div class="export-name">CSV</div>
+          <div class="export-desc">Datos planos para importar en otros sistemas</div>
+        </div>
+        <div class="export-card" onclick="exportSemana()">
+          <div class="export-icon">📋</div>
+          <div class="export-name">Reporte Semanal</div>
+          <div class="export-desc">Resumen de la semana actual en Excel</div>
+        </div>
+        <div class="export-card" onclick="window.print()">
+          <div class="export-icon">🖨️</div>
+          <div class="export-name">Imprimir</div>
+          <div class="export-desc">Vista imprimible de la semana</div>
+        </div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<!-- MARK PICKER -->
+<div class="mark-picker" id="markPicker">
+  <div class="pick-opt" onclick="applyMark('A')"><div class="pick-badge mark-1">A</div><div class="pick-label">Asistió</div></div>
+  <div class="pick-opt" onclick="applyMark('F')"><div class="pick-badge mark-0">F</div><div class="pick-label">Faltó</div></div>
+  <div class="pick-opt" onclick="applyMark('V')"><div class="pick-badge mark-v">V</div><div class="pick-label">Vacac.</div></div>
+  <div class="pick-opt" onclick="applyMark('DM')"><div class="pick-badge mark-dm">DM</div><div class="pick-label">Desc.M</div></div>
+  <div class="pick-opt" onclick="applyMark('HE')"><div class="pick-badge mark-he">HE</div><div class="pick-label">H.Extra</div></div>
+  <div class="pick-opt" onclick="applyMark('P')"><div class="pick-badge mark-p">P</div><div class="pick-label">Permiso</div></div>
+  <div class="pick-opt" onclick="applyMark('T')"><div class="pick-badge mark-t">T</div><div class="pick-label">Tardanz</div></div>
+  <div class="pick-opt" onclick="applyMark('C')"><div class="pick-badge mark-c">C</div><div class="pick-label">Curso</div></div>
+  <div class="pick-opt" onclick="applyMark('EMO')"><div class="pick-badge mark-dm">EMO</div><div class="pick-label">Ex.Med</div></div>
+  <div class="pick-opt" onclick="applyMark('AE')"><div class="pick-badge mark-c">AE</div><div class="pick-label">Act.Emp</div></div>
+</div>
+
+<!-- MODAL ADD/EDIT WORKER -->
+<div class="modal-overlay" id="modal-addWorker">
+  <div class="modal">
+    <div class="modal-head">
+      <span class="modal-title" id="modalWorkerTitle">Agregar Técnico</span>
+      <button class="modal-close" onclick="closeModal('addWorker')">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="editWorkerId">
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Apellidos y Nombres</label>
+          <input type="text" id="wNombre" class="form-input" placeholder="APELLIDO, Nombre">
+        </div>
+        <div class="form-group">
+          <label class="form-label">DNI / N° Equipo</label>
+          <input type="text" id="wDni" class="form-input" placeholder="12345678">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">CUC</label>
+          <input type="text" id="wCuc" class="form-input" placeholder="0000">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Guardia</label>
+          <select id="wGuardia" class="form-input">
+            <option>Guardia A</option>
+            <option>Guardia B</option>
+            <option>Guardia A-1</option>
+            <option>Guardia A-2</option>
+            <option>Guardia B-1</option>
+            <option>Guardia B-2</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Área</label>
+        <select id="wArea" class="form-input">
+          <option>MANTENIMIENTO</option>
+          <option>BLOWER</option>
+          <option>MOTOR ELECTRICO</option>
+          <option>MOTOR DE TRACCION</option>
+          <option>TREN DE POTENCIA</option>
+          <option>FRENOS</option>
+          <option>SOPORTE</option>
+        </select>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeModal('addWorker')">Cancelar</button>
+      <button class="btn btn-primary" onclick="saveWorker()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast">
+  <div class="toast-dot"></div>
+  <span id="toastMsg"></span>
+</div>
+
+<script type="module">
+// ═══════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════
+const DAYS_PER_WEEK = 7;
+const MARKS_ORDER = ['A','HE','V','DM','P','T','C','EMO','AE','F'];
+const AREA_COLORS = {
+  'BLOWER':           '#38d9d9',
+  'MANTENIMIENTO':    '#4f7dff',
+  'MOTOR ELECTRICO':  '#f5c518',
+  'ALTERNADORES':     '#ff5c7a',
+  'MOTOR DE TRACCION':'#ff8c42',
+  'TREN DE POTENCIA': '#b36bff',
+  'FRENOS':           '#e83b5e',
+  'SUPERVISION':      '#2dd4a0',
+};
+
+let state = {
+  workers: [],
+  attendance: {},   // { workerId: { 'YYYY-MM-DD': 'mark' } }
+  filters: { area: 'TODOS', guardia: 'TODOS' },
+  currentWeekStart: getMonday(new Date()),
+  activeView: 'registro',
+  pickerTarget: null,
+};
+
+function getMonday(d) {
+  const dt = new Date(d);
+  const day = dt.getDay();
+  const diff = (day === 0) ? -6 : 1 - day;
+  dt.setDate(dt.getDate() + diff);
+  dt.setHours(0,0,0,0);
+  return dt;
+}
+
+function dateStr(d) {
+  return d.toISOString().slice(0,10);
+}
+
+function loadFromStorage() {
+  try {
+    const s = localStorage.getItem('kmmp_attendance_v2');
+    if (s) Object.assign(state, JSON.parse(s));
+    state.currentWeekStart = getMonday(state.currentWeekStart ? new Date(state.currentWeekStart) : new Date());
+  } catch(e) {}
+  if (!state.workers || state.workers.length === 0) loadDefaultWorkers();
+}
+
+function saveData() {
+  try {
+    localStorage.setItem('kmmp_attendance_v2', JSON.stringify({
+      workers: state.workers,
+      attendance: state.attendance,
+    }));
+    showToast('Datos guardados correctamente', 'success');
+  } catch(e) {
+    showToast('Error al guardar', 'error');
+  }
+}
+
+// ═══════════════════════════════════════════════
+// DEFAULT DATA (from the Excel)
+// ═══════════════════════════════════════════════
+function loadDefaultWorkers() {
+  const raw = [
+    {id:'w1',nombre:'CAMPOS MONTEJO, ELVIN ALDO',dni:'1070287302',cuc:'4105',area:'MANTENIMIENTO',guardia:'A'},
+    {id:'w2',nombre:'OVIEDO SOTO, LUIS ALFREDO',dni:'1046144629',cuc:'4847',area:'MANTENIMIENTO',guardia:'A'},
+    {id:'w3',nombre:'HUAMAN ZUÑIGA, ANDY JESUS',dni:'1075979735',cuc:'5297',area:'MANTENIMIENTO',guardia:'A'},
+    {id:'w4',nombre:'YZAGUIRRE QUISPE, JOSE ALBERTO',dni:'1047477180',cuc:'8211',area:'MANTENIMIENTO',guardia:'A'},
+    {id:'w5',nombre:'MACAVILCA GUERRA, MARCOS DANIEL',dni:'1025844451',cuc:'3930',area:'MANTENIMIENTO',guardia:'B'},
+    {id:'w6',nombre:'CORRALES BENAVIDES, JEOSHUA',dni:'1060766071',cuc:'8212',area:'MANTENIMIENTO',guardia:'B'},
+    {id:'w7',nombre:'PALACIOS SERVAN, LUIS ALEXANDER',dni:'1077355897',cuc:'5644',area:'MANTENIMIENTO',guardia:'B'},
+    {id:'w8',nombre:'AYMA OYOLO, JOSE CARLOS',dni:'1046837151',cuc:'4424',area:'BLOWER',guardia:'A'},
+    {id:'w9',nombre:'DE PAZ VELA, RONALDO',dni:'1073664636',cuc:'5747',area:'BLOWER',guardia:'A'},
+    {id:'w10',nombre:'TADEO ROMERO, WALDO',dni:'1070186559',cuc:'5782',area:'BLOWER',guardia:'A'},
+    {id:'w11',nombre:'LOZADA VILCHEZ, MIRIAM JANETT',dni:'1073673101',cuc:'5783',area:'BLOWER',guardia:'A'},
+    {id:'w12',nombre:'PEREZ ROQUE, YOSELYN IBETH',dni:'1070276125',cuc:'3508',area:'BLOWER',guardia:'B'},
+    {id:'w13',nombre:'BECERRA RAMIREZ, IVAN',dni:'1042159659',cuc:'4846',area:'BLOWER',guardia:'B'},
+    {id:'w14',nombre:'HEREDIA AQUINO, VICTOR ANDERSON',dni:'1075002576',cuc:'4174',area:'MOTOR ELECTRICO',guardia:'A'},
+    {id:'w15',nombre:'GONZALES ANTEZANA, JULIO CESAR',dni:'1074706360',cuc:'5531',area:'MOTOR ELECTRICO',guardia:'A'},
+    {id:'w16',nombre:'ANGUIS CASTAÑEDA, CRISTOPHER JUNIOR',dni:'1071337646',cuc:'4018',area:'MOTOR ELECTRICO',guardia:'A'},
+    {id:'w17',nombre:'COLLANTES LLANOS, VALENTIN VLADIMIR',dni:'1047745512',cuc:'5456',area:'MOTOR ELECTRICO',guardia:'A'},
+    {id:'w18',nombre:'CABALLERO BLAS, ELIO HELI',dni:'1042371678',cuc:'3994',area:'MOTOR ELECTRICO',guardia:'B'},
+    {id:'w19',nombre:'CUYUBAMBA MUCHA, YANPIER ALEJANDRO',dni:'1070068222',cuc:'3317',area:'MOTOR ELECTRICO',guardia:'B'},
+    {id:'w20',nombre:'VELASQUEZ CASTILLO, PERCY ERNESTO',dni:'1044081820',cuc:'3623',area:'MOTOR ELECTRICO',guardia:'B'},
+    {id:'w21',nombre:'DAMIAN CHAVEZ, CESAR MANUEL',dni:'1047001465',cuc:'5714',area:'MOTOR ELECTRICO',guardia:'B'},
+    {id:'w22',nombre:'MENDOZA DE LA CRUZ, JOHN MARCOS',dni:'1040655821',cuc:'1141',area:'MOTOR DE TRACCION',guardia:'A'},
+    {id:'w23',nombre:'BALLESTEROS RODRIGUEZ, ALDAIR',dni:'1076762393',cuc:'4160',area:'MOTOR DE TRACCION',guardia:'A'},
+    {id:'w24',nombre:'ROJAS LOPEZ, JANDHER',dni:'1073090903',cuc:'5868',area:'MOTOR DE TRACCION',guardia:'A'},
+    {id:'w25',nombre:'VEGA CARDENAS, ABEL',dni:'1046478628',cuc:'3163',area:'MOTOR DE TRACCION',guardia:'A'},
+    {id:'w26',nombre:'FUENTES RIVERA, KENNY TORIBIO',dni:'1073276654',cuc:'4485',area:'MOTOR DE TRACCION',guardia:'A'},
+    {id:'w27',nombre:'PABLO CAPCHA, WILSON',dni:'1042858151',cuc:'2675',area:'MOTOR DE TRACCION',guardia:'B'},
+    {id:'w28',nombre:'LOPEZ LOPEZ, FREDY RAÚL',dni:'1070064858',cuc:'5646',area:'MOTOR DE TRACCION',guardia:'B'},
+    {id:'w29',nombre:'SAONA RODRIGUEZ, JOSE HUBER',dni:'1071566285',cuc:'5977',area:'MOTOR DE TRACCION',guardia:'B'},
+    {id:'w30',nombre:'ROSALES ASTUHUAMAN, JEFFERSON',dni:'1047233329',cuc:'2676',area:'MOTOR DE TRACCION',guardia:'B'},
+    {id:'w31',nombre:'CASTILLO HUAMANI, JONATHAN',dni:'1075181045',cuc:'5720',area:'MOTOR DE TRACCION',guardia:'B'},
+    {id:'w32',nombre:'SALINAS LAZO, BRIAN',dni:'1070400363',cuc:'3580',area:'TREN DE POTENCIA',guardia:'A'},
+    {id:'w33',nombre:'PALOMINO BAÑOS, FREDDY STIVE',dni:'1076020555',cuc:'4848',area:'TREN DE POTENCIA',guardia:'A'},
+    {id:'w34',nombre:'ENRIQUEZ LAPA, ELOY',dni:'1071881652',cuc:'5648',area:'TREN DE POTENCIA',guardia:'B'},
+    {id:'w35',nombre:'CHANG PARDO, JAEROCK ARTURO',dni:'1071573230',cuc:'8066',area:'TREN DE POTENCIA',guardia:'B'},
+    {id:'w36',nombre:'SAUCEDO ALVARADO, MATEO NEPTALI',dni:'1046922278',cuc:'3935',area:'TREN DE POTENCIA',guardia:'B'},
+    {id:'w37',nombre:'CHIROQUE BRUNO, JOSE JULIO',dni:'1025722232',cuc:'3708',area:'FRENOS',guardia:'A'},
+    {id:'w38',nombre:'CRUZ JIMENEZ, JORGE',dni:'1076151098',cuc:'4486',area:'FRENOS',guardia:'B'},
+  ];
+  state.workers = raw;
+}
+
+// ═══════════════════════════════════════════════
+// NAVIGATION
+// ═══════════════════════════════════════════════
+function switchView(v) {
+  state.activeView = v;
+  document.querySelectorAll('.view').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(el => el.classList.remove('active'));
+  document.getElementById('view-' + v).classList.add('active');
+  document.querySelectorAll('.nav-btn').forEach(el => {
+    if (el.textContent.toLowerCase().includes(v.slice(0,3))) el.classList.add('active');
+  });
+  if (v === 'registro') renderTable();
+  if (v === 'resumen') renderResumen();
+  if (v === 'personal') renderPersonal();
+}
+
+function setFilter(key, val) {
+  state.filters[key] = val;
+  document.querySelectorAll('.sidebar-item').forEach(el => el.classList.remove('active'));
+  event.currentTarget.classList.add('active');
+  renderTable();
+}
+
+function changeWeek(dir) {
+  state.currentWeekStart = new Date(state.currentWeekStart);
+  state.currentWeekStart.setDate(state.currentWeekStart.getDate() + dir * 7);
+  updateWeekDisplay();
+  renderTable();
+}
+
+function updateWeekDisplay() {
+  const ws = new Date(state.currentWeekStart);
+  const we = new Date(ws); we.setDate(we.getDate() + 6);
+  const months = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+  const weekNum = getWeekNumber(ws);
+  document.getElementById('weekDisplay').textContent = `Sem. ${weekNum} — ${months[ws.getMonth()]} ${ws.getFullYear()}`;
+  document.getElementById('weekRangeText').textContent =
+    `${ws.getDate()} ${months[ws.getMonth()]} — ${we.getDate()} ${months[we.getMonth()]} ${we.getFullYear()}`;
+}
+
+function getWeekNumber(d) {
+  const dt = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+  const dayNum = dt.getUTCDay() || 7;
+  dt.setUTCDate(dt.getUTCDate() + 4 - dayNum);
+  const yearStart = new Date(Date.UTC(dt.getUTCFullYear(), 0, 1));
+  return Math.ceil((((dt - yearStart) / 86400000) + 1) / 7);
+}
+
+// ═══════════════════════════════════════════════
+// RENDER TABLE
+// ═══════════════════════════════════════════════
+function getWeekDates() {
+  const dates = [];
+  const ws = new Date(state.currentWeekStart);
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(ws);
+    d.setDate(ws.getDate() + i);
+    dates.push(d);
+  }
+  return dates;
+}
+
+const DAY_NAMES = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
+
+function renderTable() {
+  const dates = getWeekDates();
+  const search = (document.getElementById('searchBox')?.value || '').toLowerCase();
+  const f = state.filters;
+
+  let workers = state.workers.filter(w => {
+    if (f.area !== 'TODOS' && w.area !== f.area) return false;
+    if (f.guardia !== 'TODOS' && w.guardia !== f.guardia) return false;
+    if (search && !w.nombre.toLowerCase().includes(search) && !w.dni.includes(search)) return false;
+    return true;
+  });
+
+  // Update sidebar counts
+  const areas = ['BLOWER','MANTENIMIENTO','MOTOR ELECTRICO','ALTERNADORES','MOTOR DE TRACCION','TREN DE POTENCIA','FRENOS','SUPERVISION'];
+  const keys   = ['blow','mant','me','alt','mt','tp','fren','sup'];
+  document.getElementById('cnt-todos').textContent = state.workers.length;
+  areas.forEach((a,i) => {
+    document.getElementById('cnt-' + keys[i]).textContent = state.workers.filter(w => w.area===a).length;
+  });
+
+  // HEAD
+  const head = document.getElementById('tableHead');
+  head.innerHTML = `<tr>
+    <th style="width:32px">#</th>
+    <th>Técnico</th>
+    <th>Área</th>
+    <th>Guardia</th>
+    ${dates.map(d => `<th class="day-col">${DAY_NAMES[d.getDay()]}<br><span style="font-size:10px;color:var(--c-text3)">${d.getDate()}</span></th>`).join('')}
+    <th style="text-align:center">Total</th>
+    <th style="text-align:center">HE</th>
+    <th style="text-align:center">Faltas</th>
+  </tr>`;
+
+  // BODY
+  const tbody = document.getElementById('tableBody');
+  if (workers.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="100"><div class="empty-state"><div class="empty-icon">🔍</div><div class="empty-title">Sin resultados</div><div class="empty-sub">Ajusta los filtros o la búsqueda</div></div></td></tr>`;
+    renderStats(workers, dates);
+    return;
+  }
+
+  tbody.innerHTML = workers.map((w, idx) => {
+    const att = state.attendance[w.id] || {};
+    let total=0, he=0, faltas=0;
+    dates.forEach(d => {
+      const m = att[dateStr(d)] || '';
+      if (m === 'A') total++;
+      if (m === 'HE') { total++; he++; }
+      if (m === 'F') faltas++;
+    });
+
+    const dayCells = dates.map(d => {
+      const ds = dateStr(d);
+      const m = att[ds] || '';
+      return `<td class="day-cell">
+        <div class="mark ${getMarkClass(m)}" onclick="openPicker(event,'${w.id}','${ds}')" data-tip="${getMarkLabel(m) || 'Click para marcar'}">
+          ${m || '·'}
+        </div>
+      </td>`;
+    }).join('');
+
+    const color = AREA_COLORS[w.area] || '#888';
+    return `<tr>
+      <td class="cell-meta" style="text-align:center">${idx+1}</td>
+      <td>
+        <div class="cell-name">${w.nombre}</div>
+        <div class="cell-meta">${w.dni}</div>
+      </td>
+      <td><span class="cell-area" style="background:${color}22;color:${color}">${w.area}</span></td>
+      <td><span class="cell-guard guard-A">${w.guardia}</span></td>
+      ${dayCells}
+      <td class="cell-sum" style="color:var(--c-green)">${total}</td>
+      <td class="cell-sum" style="color:var(--c-orange)">${he}</td>
+      <td class="cell-sum" style="color:var(--c-red)">${faltas}</td>
+    </tr>`;
+  }).join('');
+
+  renderStats(workers, dates);
+  document.getElementById('tableTitle').textContent = `${workers.length} técnicos`;
+}
+
+function getMarkClass(m) {
+  const map = {
+    'A':'mark-1','F':'mark-0','V':'mark-v','DM':'mark-dm',
+    'HE':'mark-he','P':'mark-p','T':'mark-t','C':'mark-c',
+    'EMO':'mark-dm','AE':'mark-c'
+  };
+  return map[m] || 'mark-empty';
+}
+
+function getMarkLabel(m) {
+  const map = {
+    'A':'Asistió','F':'Faltó','V':'Vacaciones','DM':'Descanso Médico',
+    'HE':'Hora Extra','P':'Permiso','T':'Tardanza','C':'Curso/Capacitación',
+    'EMO':'Examen Médico Ocupacional','AE':'Actividades de la Empresa'
+  };
+  return map[m] || '';
+}
+
+function renderStats(workers, dates) {
+  let asist=0, faltas=0, vac=0, dm=0, he=0, perm=0;
+  workers.forEach(w => {
+    const att = state.attendance[w.id] || {};
+    dates.forEach(d => {
+      const m = att[dateStr(d)] || '';
+      if (m==='1'||m==='HE') asist++;
+      if (m==='F') faltas++;
+      if (m==='V') vac++;
+      if (m==='DM') dm++;
+      if (m==='HE') he++;
+      if (m==='P') perm++;
+    });
+  });
+  const total = workers.length * 7;
+  const pct = total ? Math.round(asist/total*100) : 0;
+
+  document.getElementById('statsGrid').innerHTML = `
+    <div class="stat-card green">
+      <div class="stat-label">Asistencias</div>
+      <div class="stat-value">${asist}</div>
+      <div class="stat-sub">${pct}% del período</div>
+    </div>
+    <div class="stat-card red">
+      <div class="stat-label">Faltas</div>
+      <div class="stat-value">${faltas}</div>
+      <div class="stat-sub">registradas esta semana</div>
+    </div>
+    <div class="stat-card yellow">
+      <div class="stat-label">Vacaciones</div>
+      <div class="stat-value">${vac}</div>
+      <div class="stat-sub">días en curso</div>
+    </div>
+    <div class="stat-card blue">
+      <div class="stat-label">Horas Extra</div>
+      <div class="stat-value">${he}</div>
+      <div class="stat-sub">acumuladas</div>
+    </div>
+    <div class="stat-card purple">
+      <div class="stat-label">Desc. Médico</div>
+      <div class="stat-value">${dm}</div>
+      <div class="stat-sub">activos</div>
+    </div>
+    <div class="stat-card orange">
+      <div class="stat-label">Permisos</div>
+      <div class="stat-value">${perm}</div>
+      <div class="stat-sub">otorgados</div>
+    </div>
+  `;
+}
+
+// ═══════════════════════════════════════════════
+// MARK PICKER
+// ═══════════════════════════════════════════════
+let pickerTarget = null;
+
+function openPicker(e, wid, ds) {
+  e.stopPropagation();
+  pickerTarget = { wid, ds };
+  const picker = document.getElementById('markPicker');
+  const rect = e.currentTarget.getBoundingClientRect();
+  picker.style.left = Math.min(rect.left, window.innerWidth - 200) + 'px';
+  picker.style.top = (rect.bottom + 6) + 'px';
+  picker.classList.add('show');
+}
+
+function applyMark(m) {
+  if (!pickerTarget) return;
+  const { wid, ds } = pickerTarget;
+  if (!state.attendance[wid]) state.attendance[wid] = {};
+  const current = state.attendance[wid][ds];
+  if (current === m) {
+    delete state.attendance[wid][ds];
+  } else {
+    state.attendance[wid][ds] = m;
+  }
+  document.getElementById('markPicker').classList.remove('show');
+  pickerTarget = null;
+  renderTable();
+}
+
+document.addEventListener('click', () => {
+  document.getElementById('markPicker').classList.remove('show');
+  pickerTarget = null;
+});
+
+function markAllPresent() {
+  const dates = getWeekDates();
+  const today = dateStr(new Date());
+  state.workers.forEach(w => {
+    if (!state.attendance[w.id]) state.attendance[w.id] = {};
+    dates.forEach(d => {
+      const ds = dateStr(d);
+      if (ds <= today && !state.attendance[w.id][ds]) {
+        state.attendance[w.id][ds] = '1';
+      }
+    });
+  });
+  renderTable();
+  showToast('Todos los técnicos marcados como presentes', 'success');
+}
+
+// ═══════════════════════════════════════════════
+// RESUMEN VIEW
+// ═══════════════════════════════════════════════
+function renderResumen() {
+  const mesIdx = parseInt(document.getElementById('resumenMes')?.value || new Date().getMonth());
+  const year = 2026;
+  const daysInMonth = new Date(year, mesIdx + 1, 0).getDate();
+
+  let totalAsist=0, totalFaltas=0, totalVac=0, totalDM=0, totalHE=0;
+  const workerStats = state.workers.map(w => {
+    const att = state.attendance[w.id] || {};
+    let asist=0, faltas=0, vac=0, dm=0, he=0;
+    for (let d=1; d<=daysInMonth; d++) {
+      const ds = `${year}-${String(mesIdx+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+      const m = att[ds] || '';
+      if (m==='A') asist++;
+      if (m==='HE') { asist++; he++; }
+      if (m==='F') faltas++;
+      if (m==='V') vac++;
+      if (m==='DM') dm++;
+    }
+    totalAsist+=asist; totalFaltas+=faltas; totalVac+=vac; totalDM+=dm; totalHE+=he;
+    return { ...w, asist, faltas, vac, dm, he };
+  });
+
+  // Stats
+  const pct = Math.round(totalAsist / (state.workers.length * daysInMonth) * 100) || 0;
+  document.getElementById('resumenStats').innerHTML = `
+    <div class="stat-card green"><div class="stat-label">Total Asistencias</div><div class="stat-value">${totalAsist}</div><div class="stat-sub">${pct}% del mes</div></div>
+    <div class="stat-card red"><div class="stat-label">Total Faltas</div><div class="stat-value">${totalFaltas}</div><div class="stat-sub">en el mes</div></div>
+    <div class="stat-card blue"><div class="stat-label">Horas Extra</div><div class="stat-value">${totalHE}</div><div class="stat-sub">registradas</div></div>
+    <div class="stat-card yellow"><div class="stat-label">Vacaciones</div><div class="stat-value">${totalVac}</div></div>
+    <div class="stat-card purple"><div class="stat-label">Desc. Médico</div><div class="stat-value">${totalDM}</div></div>
+    <div class="stat-card orange"><div class="stat-label">Personal</div><div class="stat-value">${state.workers.length}</div><div class="stat-sub">técnicos activos</div></div>
+  `;
+
+  // Area chart
+  const areaChart = document.getElementById('areaChart');
+  const areaData = {};
+  state.workers.forEach(w => {
+    if (!areaData[w.area]) areaData[w.area] = { asist: 0, total: 0 };
+    const ws = workerStats.find(x => x.id === w.id);
+    areaData[w.area].asist += ws.asist;
+    areaData[w.area].total += daysInMonth;
+  });
+  areaChart.innerHTML = Object.entries(areaData).map(([area, d]) => {
+    const pct = d.total ? Math.round(d.asist/d.total*100) : 0;
+    const color = AREA_COLORS[area] || '#888';
+    return `<div>
+      <div style="display:flex;justify-content:space-between;margin-bottom:4px">
+        <span style="font-size:12px;color:var(--c-text2)">${area}</span>
+        <span style="font-size:12px;font-family:var(--mono);color:${color}">${pct}%</span>
+      </div>
+      <div class="progress-bar">
+        <div class="progress-fill" style="width:${pct}%;background:${color}"></div>
+      </div>
+    </div>`;
+  }).join('');
+
+  // Top workers
+  const sorted = [...workerStats].sort((a,b) => b.asist - a.asist).slice(0, 8);
+  document.getElementById('topWorkers').innerHTML = sorted.map(w => {
+    const color = AREA_COLORS[w.area] || '#888';
+    const initials = w.nombre.split(',')[0].split(' ').map(x=>x[0]).join('').slice(0,2);
+    return `<div class="worker-row">
+      <div class="worker-avatar" style="background:${color}22;color:${color}">${initials}</div>
+      <div style="flex:1;overflow:hidden">
+        <div class="worker-name">${w.nombre}</div>
+        <div style="font-size:11px;color:var(--c-text3)">${w.area}</div>
+      </div>
+      <div style="text-align:right">
+        <div style="font-size:13px;font-weight:600;font-family:var(--mono);color:var(--c-green)">${w.asist}</div>
+        <div style="font-size:11px;color:var(--c-text3)">días</div>
+      </div>
+    </div>`;
+  }).join('');
+
+  // Detail table
+  const tbody = document.getElementById('resumenTableBody');
+  tbody.innerHTML = workerStats.map(w => {
+    const color = AREA_COLORS[w.area] || '#888';
+    const pct = daysInMonth ? Math.round(w.asist/daysInMonth*100) : 0;
+    const pctColor = pct >= 90 ? 'var(--c-green)' : pct >= 75 ? 'var(--c-yellow)' : 'var(--c-red)';
+    return `<tr style="border-bottom:1px solid var(--c-border)">
+      <td style="padding:9px 12px;font-size:13px;color:var(--c-text)">${w.nombre}</td>
+      <td style="padding:9px 12px;text-align:center"><span class="cell-area" style="background:${color}22;color:${color}">${w.area}</span></td>
+      <td style="padding:9px 12px;text-align:center;font-family:var(--mono);color:var(--c-green);font-weight:600">${w.asist}</td>
+      <td style="padding:9px 12px;text-align:center;font-family:var(--mono);color:var(--c-red)">${w.faltas}</td>
+      <td style="padding:9px 12px;text-align:center;font-family:var(--mono);color:var(--c-yellow)">${w.vac}</td>
+      <td style="padding:9px 12px;text-align:center;font-family:var(--mono);color:var(--c-teal)">${w.dm}</td>
+      <td style="padding:9px 12px;text-align:center;font-family:var(--mono);color:var(--c-orange)">${w.he}</td>
+      <td style="padding:9px 12px;text-align:center;font-family:var(--mono);font-weight:600;color:${pctColor}">${pct}%</td>
+    </tr>`;
+  }).join('');
+}
+
+// ═══════════════════════════════════════════════
+// PERSONAL VIEW
+// ═══════════════════════════════════════════════
+function renderPersonal() {
+  const search = (document.getElementById('searchPersonal')?.value || '').toLowerCase();
+  const workers = state.workers.filter(w =>
+    !search || w.nombre.toLowerCase().includes(search) || w.dni.includes(search)
+  );
+  document.getElementById('personalCount').textContent = `${workers.length} técnicos activos`;
+  const tbody = document.getElementById('personalTableBody');
+  tbody.innerHTML = workers.map((w, i) => {
+    const color = AREA_COLORS[w.area] || '#888';
+    return `<tr style="border-bottom:1px solid var(--c-border)">
+      <td style="padding:10px 12px;color:var(--c-text3);font-family:var(--mono);font-size:12px">${i+1}</td>
+      <td style="padding:10px 12px;font-size:13px;color:var(--c-text);font-weight:500">${w.nombre}</td>
+      <td style="padding:10px 12px;font-family:var(--mono);font-size:12px;color:var(--c-text2)">${w.dni}</td>
+      <td style="padding:10px 12px;font-family:var(--mono);font-size:12px;color:var(--c-text3)">${w.cuc||'—'}</td>
+      <td style="padding:10px 12px"><span class="cell-area" style="background:${color}22;color:${color}">${w.area}</span></td>
+      <td style="padding:10px 12px"><span class="cell-guard guard-${w.guardia}">G-${w.guardia}</span></td>
+      <td style="padding:10px 12px">
+        <div style="display:flex;gap:6px">
+          <button class="btn" style="padding:4px 10px;font-size:12px" onclick="editWorker('${w.id}')">✏️</button>
+          <button class="btn" style="padding:4px 10px;font-size:12px;border-color:rgba(255,92,122,0.3);color:var(--c-red)" onclick="deleteWorker('${w.id}')">🗑️</button>
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+// ═══════════════════════════════════════════════
+// WORKER CRUD
+// ═══════════════════════════════════════════════
+function openModal(id) {
+  if (id === 'addWorker') {
+    document.getElementById('modalWorkerTitle').textContent = 'Agregar Técnico';
+    document.getElementById('editWorkerId').value = '';
+    document.getElementById('wNombre').value = '';
+    document.getElementById('wDni').value = '';
+    document.getElementById('wCuc').value = '';
+    document.getElementById('wGuardia').value = 'A';
+    document.getElementById('wArea').value = 'MANTENIMIENTO';
+  }
+  document.getElementById('modal-' + id).classList.add('show');
+}
+
+function closeModal(id) {
+  document.getElementById('modal-' + id).classList.remove('show');
+}
+
+function editWorker(id) {
+  const w = state.workers.find(x => x.id === id);
+  if (!w) return;
+  document.getElementById('modalWorkerTitle').textContent = 'Editar Técnico';
+  document.getElementById('editWorkerId').value = id;
+  document.getElementById('wNombre').value = w.nombre;
+  document.getElementById('wDni').value = w.dni;
+  document.getElementById('wCuc').value = w.cuc || '';
+  document.getElementById('wGuardia').value = w.guardia;
+  document.getElementById('wArea').value = w.area;
+  document.getElementById('modal-addWorker').classList.add('show');
+}
+
+function saveWorker() {
+  const nombre = document.getElementById('wNombre').value.trim();
+  const dni = document.getElementById('wDni').value.trim();
+  if (!nombre || !dni) { showToast('Nombre y DNI son obligatorios', 'error'); return; }
+
+  const editId = document.getElementById('editWorkerId').value;
+  const w = {
+    id: editId || 'w' + Date.now(),
+    nombre: nombre.toUpperCase(),
+    dni,
+    cuc: document.getElementById('wCuc').value.trim(),
+    guardia: document.getElementById('wGuardia').value,
+    area: document.getElementById('wArea').value,
+  };
+
+  if (editId) {
+    const idx = state.workers.findIndex(x => x.id === editId);
+    if (idx !== -1) state.workers[idx] = w;
+    showToast('Técnico actualizado', 'success');
+  } else {
+    state.workers.push(w);
+    showToast('Técnico agregado', 'success');
+  }
+
+  closeModal('addWorker');
+  renderTable();
+  renderPersonal();
+}
+
+function deleteWorker(id) {
+  if (!confirm('¿Eliminar este técnico?')) return;
+  state.workers = state.workers.filter(x => x.id !== id);
+  delete state.attendance[id];
+  renderPersonal();
+  renderTable();
+  showToast('Técnico eliminado', 'success');
+}
+
+// ═══════════════════════════════════════════════
+// EXPORT
+// ═══════════════════════════════════════════════
+function exportExcel() {
+  const wb = XLSX.utils.book_new();
+  const months = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+  const year = 2026;
+
+  months.forEach((mes, mi) => {
+    const daysInMonth = new Date(year, mi+1, 0).getDate();
+    const header = ['#','APELLIDO Y NOMBRE','DNI','CUC','ÁREA','GUARDIA'];
+    for (let d=1; d<=daysInMonth; d++) header.push(d);
+    header.push('ASISTENCIA','FALTAS','VACACIONES','DM','HE');
+
+    const rows = [header];
+    state.workers.forEach((w, idx) => {
+      const att = state.attendance[w.id] || {};
+      const row = [idx+1, w.nombre, w.dni, w.cuc||'', w.area, w.guardia];
+      let asist=0, faltas=0, vac=0, dm=0, he=0;
+      for (let d=1; d<=daysInMonth; d++) {
+        const ds = `${year}-${String(mi+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+        const m = att[ds] || '';
+        row.push(m);
+        if (m==='A') asist++;
+        if (m==='HE') { asist++; he++; }
+        if (m==='F') faltas++;
+        if (m==='V') vac++;
+        if (m==='DM') dm++;
+      }
+      row.push(asist, faltas, vac, dm, he);
+      rows.push(row);
+    });
+
+    const ws = XLSX.utils.aoa_to_sheet(rows);
+    XLSX.utils.book_append_sheet(wb, ws, mes);
+  });
+
+  XLSX.writeFile(wb, `Asistencia_KRCP_${year}.xlsx`);
+  showToast('Excel exportado correctamente', 'success');
+}
+
+function exportCSV() {
+  const dates = getWeekDates();
+  const header = ['#','Nombre','DNI','CUC','Área','Guardia', ...dates.map(d=>dateStr(d)), 'Total','HE','Faltas'];
+  const rows = [header.join(',')];
+  state.workers.forEach((w, idx) => {
+    const att = state.attendance[w.id] || {};
+    let t=0, he=0, f=0;
+    const marks = dates.map(d => {
+      const m = att[dateStr(d)] || '';
+      if (m==='A') t++;
+      if (m==='HE') { t++; he++; }
+      if (m==='F') f++;
+      return m;
+    });
+    rows.push([idx+1, `"${w.nombre}"`, w.dni, w.cuc||'', `"${w.area}"`, w.guardia, ...marks, t, he, f].join(','));
+  });
+  const blob = new Blob([rows.join('\n')], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a'); a.href = url; a.download = 'asistencia_semana.csv'; a.click();
+  showToast('CSV exportado', 'success');
+}
+
+function exportSemana() {
+  const dates = getWeekDates();
+  const wb = XLSX.utils.book_new();
+  const header = ['#','APELLIDO Y NOMBRE','DNI','ÁREA','GUARDIA', ...dates.map(d=>`${DAY_NAMES[d.getDay()]} ${d.getDate()}`), 'TOTAL','HE','FALTAS'];
+  const rows = [header];
+  state.workers.forEach((w, idx) => {
+    const att = state.attendance[w.id] || {};
+    let t=0, he=0, f=0;
+    const marks = dates.map(d => {
+      const m = att[dateStr(d)] || '';
+      if (m==='A') t++;
+      if (m==='HE') { t++; he++; }
+      if (m==='F') f++;
+      return m;
+    });
+    rows.push([idx+1, w.nombre, w.dni, w.area, w.guardia, ...marks, t, he, f]);
+  });
+  const ws = XLSX.utils.aoa_to_sheet(rows);
+  XLSX.utils.book_append_sheet(wb, ws, 'Semana');
+  XLSX.writeFile(wb, `Asistencia_Semana_KRCP.xlsx`);
+  showToast('Reporte semanal exportado', 'success');
+}
+
+// ═══════════════════════════════════════════════
+// TOAST
+// ═══════════════════════════════════════════════
+function showToast(msg, type='success') {
+  const t = document.getElementById('toast');
+  document.getElementById('toastMsg').textContent = msg;
+  t.className = 'toast ' + type;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2800);
+}
+
+// ═══════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════
+loadFromStorage();
+updateWeekDisplay();
+renderTable();
+document.getElementById('resumenMes').value = new Date().getMonth();
+
+// ═══════════════════════════════════════════════
+// THEME TOGGLE
+// ═══════════════════════════════════════════════
+function toggleTheme() {
+  const html = document.documentElement;
+  const isLight = html.classList.toggle('light');
+  document.getElementById('themeToggle').textContent = isLight ? '☀️' : '🌙';
+  localStorage.setItem('kmmp_theme', isLight ? 'light' : 'dark');
+}
+(function() {
+  const saved = localStorage.getItem('kmmp_theme');
+  if (saved === 'light') {
+    document.documentElement.classList.add('light');
+    document.getElementById('themeToggle').textContent = '☀️';
+  }
+})();
+
+// ═══════════════════════════════════════════════
+// FIREBASE INTEGRATION
+// ═══════════════════════════════════════════════
+import { initializeApp } from "https://www.gstatic.com/firebasejs/11.8.1/firebase-app.js";
+import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.8.1/firebase-auth.js";
+import { getFirestore, collection, doc, getDocs, setDoc, getDoc, query, where, orderBy } from "https://www.gstatic.com/firebasejs/11.8.1/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyAxaHBhc_tfg75B9C6RHM9H7On5H-vWBOE",
+  authDomain: "asistenciakrcp.firebaseapp.com",
+  projectId: "asistenciakrcp",
+  storageBucket: "asistenciakrcp.firebasestorage.app",
+  messagingSenderId: "259315441806",
+  appId: "1:259315441806:web:ee4dfa019426a9d055e9df",
+  measurementId: "G-NG13PVMDTZ"
+};
+
+const app   = initializeApp(firebaseConfig);
+const auth  = getAuth(app);
+const db    = getFirestore(app);
+
+// ── Estado de sesión ──
+let currentUser = null;
+let userRole    = 'lector'; // 'editor' o 'lector'
+
+// ── Login overlay ──
+function showLoginScreen() {
+  document.getElementById('loginOverlay').style.display = 'flex';
+  document.querySelector('.app').style.display = 'none';
+  document.querySelector('header').style.display = 'none';
+}
+
+function hideLoginScreen() {
+  document.getElementById('loginOverlay').style.display = 'none';
+  document.querySelector('.app').style.display = 'flex';
+  document.querySelector('header').style.display = 'flex';
+}
+
+async function doLogin() {
+  const email = document.getElementById('loginEmail').value.trim();
+  const pass  = document.getElementById('loginPass').value;
+  const errEl = document.getElementById('loginError');
+  errEl.textContent = '';
+  try {
+    await signInWithEmailAndPassword(auth, email, pass);
+  } catch(e) {
+    errEl.textContent = 'Correo o contraseña incorrectos.';
+  }
+}
+
+async function doLogout() {
+  await signOut(auth);
+}
+
+document.getElementById('loginBtn').addEventListener('click', doLogin);
+document.getElementById('loginEmail').addEventListener('keydown', e => { if(e.key==='Enter') doLogin(); });
+document.getElementById('loginPass').addEventListener('keydown',  e => { if(e.key==='Enter') doLogin(); });
+
+// ── Auth state ──
+onAuthStateChanged(auth, async (user) => {
+  if (user) {
+    currentUser = user;
+    // Obtener rol del usuario desde Firestore
+    try {
+      const userDoc = await getDoc(doc(db, 'usuarios', user.uid));
+      if (userDoc.exists()) {
+        userRole = userDoc.data().rol || 'lector';
+      }
+    } catch(e) { userRole = 'lector'; }
+
+    // Actualizar UI según rol
+    document.getElementById('userDisplay').textContent = user.email;
+    document.getElementById('rolDisplay').textContent = userRole === 'editor' ? '✏️ Editor' : '👁 Lector';
+    
+    // Deshabilitar edición si es lector
+    if (userRole === 'lector') {
+      document.querySelectorAll('.mark, .btn-primary, #btnAgregarTecnico').forEach(el => {
+        el.style.pointerEvents = 'none';
+        el.style.opacity = '0.5';
+      });
+    }
+
+    hideLoginScreen();
+    await syncFromFirebase();
+    renderTable();
+
+  } else {
+    currentUser = null;
+    showLoginScreen();
+  }
+});
+
+// ── Sync desde Firebase ──
+async function syncFromFirebase() {
+  try {
+    setSpStatus('syncing');
+    // Cargar técnicos
+    const tecSnap = await getDocs(collection(db, 'tecnicos'));
+    if (!tecSnap.empty) {
+      state.workers = tecSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+    }
+
+    // Cargar asistencia de la semana actual
+    const dates   = getWeekDates();
+    const desde   = dateStr(dates[0]);
+    const hasta   = dateStr(dates[6]);
+    const attSnap = await getDocs(query(
+      collection(db, 'asistencia'),
+      where('fecha', '>=', desde),
+      where('fecha', '<=', hasta)
+    ));
+    attSnap.docs.forEach(d => {
+      const data = d.data();
+      if (!state.attendance[data.workerId]) state.attendance[data.workerId] = {};
+      state.attendance[data.workerId][data.fecha] = data.marca;
+    });
+
+    saveData();
+    setSpStatus('connected');
+    showToast('Sincronizado con Firebase ✓', 'success');
+  } catch(e) {
+    console.error('Firebase sync error:', e);
+    setSpStatus('error');
+    showToast('Error de sincronización: ' + e.message, 'error');
+  }
+}
+
+// ── Guardar marca en Firebase ──
+async function saveMarkToFirebase(workerId, fecha, marca) {
+  if (userRole !== 'editor') return;
+  const docId = `${workerId}_${fecha}`;
+  await setDoc(doc(db, 'asistencia', docId), {
+    workerId,
+    fecha,
+    marca,
+    registradoPor: currentUser?.email || '',
+    timestamp: new Date().toISOString()
+  });
+}
+
+// ── Guardar técnicos en Firebase ──
+async function saveTecnicosToFirebase() {
+  if (userRole !== 'editor') return;
+  for (const w of state.workers) {
+    await setDoc(doc(db, 'tecnicos', w.id), {
+      nombre:  w.nombre,
+      dni:     w.dni,
+      cuc:     w.cuc || '',
+      area:    w.area,
+      guardia: w.guardia,
+    });
+  }
+}
+
+// ── Override applyMark para guardar en Firebase ──
+const _origApplyMark = applyMark;
+window.applyMark = async function(m) {
+  _origApplyMark(m);
+  if (currentUser && userRole === 'editor' && window._pickerTarget) {
+    const { wid, ds } = window._pickerTarget;
+    try {
+      await saveMarkToFirebase(wid, ds, m);
+    } catch(e) {
+      showToast('Error al guardar en Firebase', 'error');
+    }
+  }
+};
+
+// Override saveData para sincronizar
+const _origSave = saveData;
+window.saveData = async function() {
+  _origSave();
+  if (currentUser && userRole === 'editor') {
+    setSpStatus('syncing');
+    try {
+      const dates = getWeekDates();
+      for (const w of state.workers) {
+        for (const d of dates) {
+          const ds   = dateStr(d);
+          const mark = (state.attendance[w.id] || {})[ds];
+          if (mark) await saveMarkToFirebase(w.id, ds, mark);
+        }
+      }
+      await saveTecnicosToFirebase();
+      setSpStatus('connected');
+      showToast('Guardado en Firebase ✓', 'success');
+    } catch(e) {
+      setSpStatus('error');
+      showToast('Error al guardar', 'error');
+    }
+  }
+};
+
+// ── Indicador SP (reutilizado para Firebase) ──
+function setSpStatus(s) {
+  const el = document.getElementById('spStatus');
+  if (!el) return;
+  const map = {
+    connected: { dot: '#2dd4a0', label: 'Firebase ✓' },
+    syncing:   { dot: '#f5c518', label: 'Sincronizando…' },
+    error:     { dot: '#ff5c7a', label: 'Error Firebase' },
+  };
+  const info = map[s] || map.connected;
+  el.innerHTML = `<span style="width:7px;height:7px;border-radius:50%;background:${info.dot};display:inline-block;margin-right:5px"></span>${info.label}`;
+}
+
+// Inyectar indicador en header
+(function() {
+  const hr = document.querySelector('.header-right');
+  if (!hr) return;
+  const sp = document.createElement('div');
+  sp.id = 'spStatus';
+  sp.style.cssText = 'font-size:11px;color:var(--c-text2);display:flex;align-items:center;padding:0 4px;white-space:nowrap;font-family:var(--mono)';
+  sp.innerHTML = '<span style="width:7px;height:7px;border-radius:50%;background:#f5c518;display:inline-block;margin-right:5px"></span>Conectando…';
+  hr.insertBefore(sp, hr.firstChild);
+  
+  // Agregar botón logout
+  const logoutBtn = document.createElement('button');
+  logoutBtn.className = 'btn';
+  logoutBtn.textContent = '🚪 Salir';
+  logoutBtn.onclick = doLogout;
+  hr.appendChild(logoutBtn);
+})();
+
+// Exponer pickerTarget para override
+Object.defineProperty(window, '_pickerTarget', {
+  get: () => pickerTarget,
+  configurable: true
+});
+
+</script>
+
+<!-- LOGIN OVERLAY -->
+<div id="loginOverlay" style="display:flex;position:fixed;inset:0;background:var(--c-bg);z-index:9999;align-items:center;justify-content:center;">
+  <div style="background:var(--c-surface);border:1px solid var(--c-border2);border-radius:16px;padding:40px;width:360px;display:flex;flex-direction:column;gap:16px;">
+    <div style="text-align:center;margin-bottom:8px">
+      <div style="font-family:var(--mono);font-size:18px;font-weight:600;color:var(--c-accent);margin-bottom:4px">KRCP</div>
+      <div style="font-size:20px;font-weight:600;color:var(--c-text)">Control de Asistencia</div>
+      <div style="font-size:13px;color:var(--c-text2);margin-top:4px">Taller Eléctrico — Callao</div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:8px">
+      <label style="font-size:12px;color:var(--c-text2);font-family:var(--mono);text-transform:uppercase;letter-spacing:.05em">Correo</label>
+      <input id="loginEmail" type="email" placeholder="correo@ejemplo.com" style="background:var(--c-surface2);border:1px solid var(--c-border2);color:var(--c-text);font-family:var(--font);font-size:14px;padding:10px 12px;border-radius:8px;outline:none;width:100%">
+    </div>
+    <div style="display:flex;flex-direction:column;gap:8px">
+      <label style="font-size:12px;color:var(--c-text2);font-family:var(--mono);text-transform:uppercase;letter-spacing:.05em">Contraseña</label>
+      <input id="loginPass" type="password" placeholder="••••••••" style="background:var(--c-surface2);border:1px solid var(--c-border2);color:var(--c-text);font-family:var(--font);font-size:14px;padding:10px 12px;border-radius:8px;outline:none;width:100%">
+    </div>
+    <div id="loginError" style="color:var(--c-red);font-size:12px;min-height:16px;text-align:center"></div>
+    <button id="loginBtn" style="background:var(--c-accent);border:none;color:#fff;font-family:var(--font);font-size:14px;font-weight:500;padding:12px;border-radius:8px;cursor:pointer;width:100%">Ingresar</button>
+    <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--c-text3)">
+      <span id="userDisplay"></span>
+      <span id="rolDisplay"></span>
+    </div>
+  </div>
+</div>
+</body>
+</html>
