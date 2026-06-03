@@ -2085,8 +2085,17 @@ onAuthStateChanged(auth, async (user) => {
     } catch(e) { userRole = 'lector'; }
 
     // Actualizar UI según rol
-    document.getElementById('userDisplay').textContent = user.email;
-    document.getElementById('rolDisplay').textContent = userRole === 'editor' ? '✏️ Editor' : '👁 Lector';
+    const nombreCorto = user.email.replace('@krcp.com','');
+    document.getElementById('userDisplay').textContent = nombreCorto;
+    const rolEl = document.getElementById('rolDisplay');
+    if (userRole === 'editor') {
+      rolEl.textContent = 'Editor';
+      rolEl.style.cssText = 'padding:2px 8px;border-radius:20px;font-size:11px;font-weight:600;letter-spacing:.03em;background:#4f7dff22;color:#7da4ff;border:1px solid #4f7dff44;';
+    } else {
+      rolEl.textContent = 'Lector';
+      rolEl.style.cssText = 'padding:2px 8px;border-radius:20px;font-size:11px;font-weight:600;letter-spacing:.03em;background:#f5c51822;color:#f5c518;border:1px solid #f5c51844;';
+    }
+    document.getElementById('userBadge').style.display = 'flex';
     
     // Deshabilitar edición si es lector
     if (userRole === 'lector') {
@@ -2234,6 +2243,16 @@ function setSpStatus(s) {
   sp.style.cssText = 'font-size:11px;color:var(--c-text2);display:flex;align-items:center;padding:0 4px;white-space:nowrap;font-family:var(--mono)';
   sp.innerHTML = '<span style="width:7px;height:7px;border-radius:50%;background:#f5c518;display:inline-block;margin-right:5px"></span>Conectando…';
   hr.insertBefore(sp, hr.firstChild);
+
+  // Badge usuario + rol
+  const userBadge = document.createElement('div');
+  userBadge.id = 'userBadge';
+  userBadge.style.cssText = 'display:none;align-items:center;gap:6px;font-size:12px;font-family:var(--mono);color:var(--c-text2);';
+  userBadge.innerHTML = `
+    <span id="userDisplay" style="color:var(--c-text);font-weight:500"></span>
+    <span id="rolDisplay" style="padding:2px 8px;border-radius:20px;font-size:11px;font-weight:600;letter-spacing:.03em"></span>
+  `;
+  hr.insertBefore(userBadge, hr.firstChild);
   
   // Agregar botón cambiar contraseña
   const cambiarBtn = document.createElement('button');
