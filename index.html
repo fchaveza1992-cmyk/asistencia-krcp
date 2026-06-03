@@ -1633,6 +1633,10 @@ document.addEventListener('click', () => {
 });
 
 function markAllPresent() {
+  if (userRole === 'lector') {
+    showToast('No puedes editar — tu usuario es de tipo Lector', 'error');
+    return;
+  }
   const dates = getWeekDates();
   const today = dateStr(new Date());
   state.workers.forEach(w => {
@@ -2097,9 +2101,12 @@ onAuthStateChanged(auth, async (user) => {
     }
     document.getElementById('userBadge').style.display = 'flex';
     
-    // Deshabilitar edición si es lector
+    // Deshabilitar edición visual si es lector (solo ocultar + Técnico)
     if (userRole === 'lector') {
-      document.querySelectorAll('.mark, .btn-primary, #btnAgregarTecnico').forEach(el => {
+      // Ocultar botón + Técnico (no tiene sentido para lector)
+      const btnTecnico = document.querySelector('.header-right .btn:not(.btn-primary)');
+      // Solo bloquear el botón de agregar técnico
+      document.querySelectorAll('#btnAgregarTecnico').forEach(el => {
         el.style.pointerEvents = 'none';
         el.style.opacity = '0.5';
       });
@@ -2180,8 +2187,14 @@ async function saveTecnicosToFirebase() {
 // ── Override applyMark para guardar en Firebase ──
 const _origApplyMark = applyMark;
 window.applyMark = async function(m) {
+  // Bloquear completamente si es lector
+  if (userRole === 'lector') {
+    document.getElementById('markPicker').classList.remove('show');
+    showToast('No puedes editar — tu usuario es de tipo Lector', 'error');
+    return;
+  }
   _origApplyMark(m);
-  if (currentUser && userRole === 'editor' && window._pickerTarget) {
+  if (currentUser && window._pickerTarget) {
     const { wid, ds } = window._pickerTarget;
     try {
       await saveMarkToFirebase(wid, ds, m);
@@ -2194,6 +2207,10 @@ window.applyMark = async function(m) {
 // Override saveData para sincronizar
 const _origSave = saveData;
 window.saveData = async function() {
+  if (userRole === 'lector') {
+    showToast('No puedes guardar — tu usuario es de tipo Lector', 'error');
+    return;
+  }
   _origSave();
   if (currentUser && userRole === 'editor') {
     setSpStatus('syncing');
@@ -2214,8 +2231,6 @@ window.saveData = async function() {
       showToast('Error al guardar: ' + e.message, 'error');
       console.error('saveData error:', e);
     }
-  } else if (currentUser && userRole === 'lector') {
-    showToast('Solo lectura — no puedes guardar', 'error');
   } else {
     showToast('Datos guardados localmente', 'success');
   }
