@@ -1136,7 +1136,7 @@
           <div class="page-title">Gestión de Personal</div>
           <div class="page-sub" id="personalCount">Cargando...</div>
         </div>
-        <button class="btn btn-primary" onclick="openModal('addWorker')">+ Agregar técnico</button>
+        <button class="btn btn-primary" style="display:none" id="btnAgregarTecnico">+ Agregar técnico</button>
       </div>
       <div class="table-wrapper">
         <div class="table-header-bar">
@@ -1249,13 +1249,14 @@
       <div class="form-group">
         <label class="form-label">Área</label>
         <select id="wArea" class="form-input">
-          <option>MANTENIMIENTO</option>
           <option>BLOWER</option>
+          <option>MANTENIMIENTO</option>
           <option>MOTOR ELECTRICO</option>
+          <option>ALTERNADORES</option>
           <option>MOTOR DE TRACCION</option>
           <option>TREN DE POTENCIA</option>
           <option>FRENOS</option>
-          <option>SOPORTE</option>
+          <option>SUPERVISION</option>
         </select>
       </div>
     </div>
@@ -2201,8 +2202,13 @@ window.saveData = async function() {
       showToast('Guardado en Firebase ✓', 'success');
     } catch(e) {
       setSpStatus('error');
-      showToast('Error al guardar', 'error');
+      showToast('Error al guardar: ' + e.message, 'error');
+      console.error('saveData error:', e);
     }
+  } else if (currentUser && userRole === 'lector') {
+    showToast('Solo lectura — no puedes guardar', 'error');
+  } else {
+    showToast('Datos guardados localmente', 'success');
   }
 };
 
