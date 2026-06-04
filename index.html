@@ -2019,6 +2019,12 @@ function showLoginScreen() {
 
 function hideLoginScreen() {
   document.getElementById('loginOverlay').style.display = 'none';
+  document.getElementById('loadingOverlay').style.display = 'flex';
+  // La app se muestra después de syncFromFirebase
+}
+
+function hideLoadingScreen() {
+  document.getElementById('loadingOverlay').style.display = 'none';
   document.querySelector('.app').style.display = 'flex';
   document.querySelector('header').style.display = 'flex';
 }
@@ -2147,11 +2153,14 @@ async function syncFromFirebase() {
     });
 
     setSpStatus('connected');
+    hideLoadingScreen();
     renderTable();
     showToast('Sincronizado con Firebase ✓', 'success');
   } catch(e) {
     console.error('Firebase sync error:', e);
     setSpStatus('error');
+    hideLoadingScreen();
+    renderTable();
     showToast('Error de sincronización: ' + e.message, 'error');
   }
 }
@@ -2453,7 +2462,15 @@ window.toggleBorrarFechas = function() {
     </div>
   </div>
 </div>
-<!-- MODAL BORRAR MARCAS -->
+<!-- LOADING OVERLAY -->
+<div id="loadingOverlay" style="display:none;position:fixed;inset:0;background:var(--c-bg);z-index:9998;align-items:center;justify-content:center;flex-direction:column;gap:16px;">
+  <div style="font-family:var(--mono);font-size:18px;font-weight:600;color:var(--c-accent)">KRCP</div>
+  <div style="font-size:14px;color:var(--c-text2)">Cargando datos...</div>
+  <div style="width:40px;height:40px;border:3px solid var(--c-border2);border-top-color:var(--c-accent);border-radius:50%;animation:spin 0.8s linear infinite"></div>
+  <style>@keyframes spin{to{transform:rotate(360deg)}}</style>
+</div>
+
+</body>
 <div class="modal-overlay" id="modal-Borrar">
   <div class="modal" style="width:420px">
     <div class="modal-head">
