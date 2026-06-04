@@ -1333,17 +1333,10 @@ function loadFromStorage() {
   if (!state.workers || state.workers.length === 0) loadDefaultWorkers();
 }
 
+// saveData es manejado completamente por Firebase (ver sección Firebase al final)
+// Esta función base no hace nada — el override de Firebase es el único punto de guardado
 function saveData() {
-  try {
-    localStorage.setItem('kmmp_attendance_v2', JSON.stringify({
-      workers: state.workers,
-      attendance: state.attendance,
-      // NO guardar filters ni activeView para evitar tabla vacía al recargar
-    }));
-    showToast('Datos guardados correctamente', 'success');
-  } catch(e) {
-    showToast('Error al guardar', 'error');
-  }
+  // Intencionalmente vacía — el guardado real ocurre en el override de Firebase
 }
 
 // ═══════════════════════════════════════════════
@@ -2193,7 +2186,7 @@ async function saveTecnicosToFirebase() {
   }
 }
 
-// ── Override applyMark — SOLO modifica state local, nunca guarda automáticamente ──
+// ── applyMark: solo modifica state local, nunca guarda ──
 const _origApplyMark = applyMark;
 window.applyMark = function(m) {
   if (userRole === 'lector') {
@@ -2204,8 +2197,7 @@ window.applyMark = function(m) {
   _origApplyMark(m);
 };
 
-// ── Override saveData — SOLO el editor puede guardar en Firebase ──
-const _origSave = saveData;
+// ── saveData: única función de guardado, solo Firebase ──
 window.saveData = async function() {
   if (userRole === 'lector') {
     showToast('No puedes guardar — tu usuario es de tipo Lector', 'error');
@@ -2217,33 +2209,26 @@ window.saveData = async function() {
   }
   setSpStatus('syncing');
   try {
-    // Guardar asistencia de la semana visible
     const dates = getWeekDates();
     for (const w of state.workers) {
       for (const d of dates) {
-        const ds   = dateStr(d);
-        const mark = (state.attendance[w.id] || {})[ds];
-        const docId = w.id + '_' + ds;
+        const ds    = dateStr(d);
+        const mark  = (state.attendance[w.id] || {})[ds];
         if (mark) {
-          await setDoc(doc(db, 'asistencia', docId), {
-            workerId: w.id,
-            fecha: ds,
-            marca: mark,
+          await setDoc(doc(db, 'asistencia', w.id + '_' + ds), {
+            workerId: w.id, fecha: ds, marca: mark,
             registradoPor: currentUser.email,
             timestamp: new Date().toISOString()
           });
         }
       }
     }
-    // Guardar técnicos
     for (const w of state.workers) {
       await setDoc(doc(db, 'tecnicos', w.id), {
         nombre: w.nombre, dni: w.dni, cuc: w.cuc || '',
         area: w.area, guardia: w.guardia,
       });
     }
-    // También guardar en localStorage
-    _origSave();
     setSpStatus('connected');
     showToast('Guardado en Firebase ✓', 'success');
   } catch(e) {
@@ -2253,16 +2238,15 @@ window.saveData = async function() {
   }
 };
 
-// ── Override markAllPresent con filtro de guardia y bloqueo lector ──
-const _origMarkAll = markAllPresent;
+// ── markAllPresent: con filtro de guardia ──
 window.markAllPresent = function() {
   if (userRole === 'lector') {
     showToast('No puedes editar — tu usuario es de tipo Lector', 'error');
     return;
   }
   const guardia = document.getElementById('guardiaPresente')?.value || 'TODOS';
-  const dates = getWeekDates();
-  const today = dateStr(new Date());
+  const dates   = getWeekDates();
+  const today   = dateStr(new Date());
   let count = 0;
   state.workers.forEach(w => {
     if (guardia !== 'TODOS' && w.guardia !== guardia) return;
@@ -2280,57 +2264,50 @@ window.markAllPresent = function() {
   showToast(`${count} marcas aplicadas a ${label}`, 'success');
 };
 
-// ── Borrar marcas con rango de fechas ──
+// ── Borrar marcas ──
 window.openModalBorrar = function() {
   if (userRole === 'lector') {
     showToast('No puedes editar — tu usuario es de tipo Lector', 'error');
     return;
   }
-  document.getElementById('modalBorrar').classList.add('show');
+  document.getElementById('modal-Borrar').classList.add('show');
 };
 
 window.doBorrarMarcas = function() {
   const tipo  = document.getElementById('borrarTipo').value;
   const desde = document.getElementById('borrarDesde').value;
   const hasta = document.getElementById('borrarHasta').value;
-
   let count = 0;
+
   if (tipo === 'total') {
-    // Borrar todo
     state.workers.forEach(w => {
       count += Object.keys(state.attendance[w.id] || {}).length;
       state.attendance[w.id] = {};
     });
   } else if (tipo === 'rango') {
     if (!desde || !hasta) { showToast('Selecciona fechas de inicio y fin', 'error'); return; }
-    if (desde > hasta)    { showToast('La fecha de inicio debe ser anterior al fin', 'error'); return; }
+    if (desde > hasta)    { showToast('La fecha inicio debe ser anterior al fin', 'error'); return; }
     state.workers.forEach(w => {
       const att = state.attendance[w.id] || {};
       Object.keys(att).forEach(ds => {
-        if (ds >= desde && ds <= hasta) {
-          delete att[ds];
-          count++;
-        }
+        if (ds >= desde && ds <= hasta) { delete att[ds]; count++; }
       });
     });
-  } else if (tipo === 'semana') {
+  } else {
+    // semana actual
     const dates = getWeekDates();
     state.workers.forEach(w => {
       dates.forEach(d => {
         const ds = dateStr(d);
-        if ((state.attendance[w.id] || {})[ds]) {
-          delete state.attendance[w.id][ds];
-          count++;
-        }
+        if ((state.attendance[w.id] || {})[ds]) { delete state.attendance[w.id][ds]; count++; }
       });
     });
   }
 
-  closeModal('Borrar');
+  document.getElementById('modal-Borrar').classList.remove('show');
   renderTable();
-  showToast(`${count} marcas eliminadas`, 'success');
+  showToast(`${count} marcas eliminadas (presiona Guardar para aplicar en Firebase)`, 'success');
 };
-
 
 
 // ── Indicador SP (reutilizado para Firebase) ──
@@ -2417,6 +2394,8 @@ window.renderTable     = renderTable;
 window.doCambiarPass   = doCambiarPass;
 window.doLogin         = doLogin;
 window.doLogout        = doLogout;
+window.openModalBorrar = openModalBorrar;
+window.doBorrarMarcas  = doBorrarMarcas;
 window.toggleBorrarFechas = function() {
   const tipo = document.getElementById('borrarTipo').value;
   document.getElementById('borrarFechas').style.display = tipo === 'rango' ? 'flex' : 'none';
