@@ -2193,15 +2193,9 @@ window.applyMark = async function(m) {
     showToast('No puedes editar — tu usuario es de tipo Lector', 'error');
     return;
   }
+  // Solo actualiza el state local, NO guarda en Firebase
+  // El guardado ocurre únicamente al presionar el botón Guardar
   _origApplyMark(m);
-  if (currentUser && window._pickerTarget) {
-    const { wid, ds } = window._pickerTarget;
-    try {
-      await saveMarkToFirebase(wid, ds, m);
-    } catch(e) {
-      showToast('Error al guardar en Firebase', 'error');
-    }
-  }
 };
 
 // Override saveData para sincronizar
