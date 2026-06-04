@@ -925,7 +925,7 @@
   <div class="header-right">
     <button class="theme-toggle" id="themeToggle" onclick="toggleTheme()" title="Cambiar tema">🌙</button>
     <button class="btn" onclick="openModal('addWorker')">+ Técnico</button>
-    <button class="btn btn-primary" onclick="saveData()">💾 Guardar</button>
+    <button class="btn btn-primary" id="btnGuardar" onclick="saveData()">💾 Guardar</button>
   </div>
 </header>
 
@@ -1049,7 +1049,17 @@
         <div class="table-header-bar">
           <div class="table-title" id="tableTitle">Lista de técnicos</div>
           <div style="display:flex;gap:8px">
-            <button class="btn" onclick="markAllPresent()">✓ Marcar todos presentes</button>
+            <select class="filter-select" id="guardiaPresente" style="font-size:12px;padding:5px 8px">
+              <option value="TODOS">Todas las guardias</option>
+              <option value="A">Guardia A</option>
+              <option value="B">Guardia B</option>
+              <option value="A-1">Guardia A-1</option>
+              <option value="A-2">Guardia A-2</option>
+              <option value="B-1">Guardia B-1</option>
+              <option value="B-2">Guardia B-2</option>
+            </select>
+            <button class="btn" id="btnMarcarPresentes" onclick="markAllPresent()">✓ Marcar presentes</button>
+            <button class="btn" id="btnBorrarMarcas" onclick="openModalBorrar()" style="border-color:rgba(255,92,122,0.4);color:var(--c-red)">🗑 Borrar marcas</button>
           </div>
         </div>
         <div class="table-scroll">
@@ -2147,7 +2157,6 @@ async function syncFromFirebase() {
       state.attendance[data.workerId][data.fecha] = data.marca;
     });
 
-    saveData();
     setSpStatus('connected');
     showToast('Sincronizado con Firebase ✓', 'success');
   } catch(e) {
@@ -2184,51 +2193,145 @@ async function saveTecnicosToFirebase() {
   }
 }
 
-// ── Override applyMark para guardar en Firebase ──
+// ── Override applyMark — SOLO modifica state local, nunca guarda automáticamente ──
 const _origApplyMark = applyMark;
-window.applyMark = async function(m) {
-  // Bloquear completamente si es lector
+window.applyMark = function(m) {
   if (userRole === 'lector') {
     document.getElementById('markPicker').classList.remove('show');
     showToast('No puedes editar — tu usuario es de tipo Lector', 'error');
     return;
   }
-  // Solo actualiza el state local, NO guarda en Firebase
-  // El guardado ocurre únicamente al presionar el botón Guardar
   _origApplyMark(m);
 };
 
-// Override saveData para sincronizar
+// ── Override saveData — SOLO el editor puede guardar en Firebase ──
 const _origSave = saveData;
 window.saveData = async function() {
   if (userRole === 'lector') {
     showToast('No puedes guardar — tu usuario es de tipo Lector', 'error');
     return;
   }
-  _origSave();
-  if (currentUser && userRole === 'editor') {
-    setSpStatus('syncing');
-    try {
-      const dates = getWeekDates();
-      for (const w of state.workers) {
-        for (const d of dates) {
-          const ds   = dateStr(d);
-          const mark = (state.attendance[w.id] || {})[ds];
-          if (mark) await saveMarkToFirebase(w.id, ds, mark);
+  if (!currentUser) {
+    showToast('Debes iniciar sesión para guardar', 'error');
+    return;
+  }
+  setSpStatus('syncing');
+  try {
+    // Guardar asistencia de la semana visible
+    const dates = getWeekDates();
+    for (const w of state.workers) {
+      for (const d of dates) {
+        const ds   = dateStr(d);
+        const mark = (state.attendance[w.id] || {})[ds];
+        const docId = w.id + '_' + ds;
+        if (mark) {
+          await setDoc(doc(db, 'asistencia', docId), {
+            workerId: w.id,
+            fecha: ds,
+            marca: mark,
+            registradoPor: currentUser.email,
+            timestamp: new Date().toISOString()
+          });
         }
       }
-      await saveTecnicosToFirebase();
-      setSpStatus('connected');
-      showToast('Guardado en Firebase ✓', 'success');
-    } catch(e) {
-      setSpStatus('error');
-      showToast('Error al guardar: ' + e.message, 'error');
-      console.error('saveData error:', e);
     }
-  } else {
-    showToast('Datos guardados localmente', 'success');
+    // Guardar técnicos
+    for (const w of state.workers) {
+      await setDoc(doc(db, 'tecnicos', w.id), {
+        nombre: w.nombre, dni: w.dni, cuc: w.cuc || '',
+        area: w.area, guardia: w.guardia,
+      });
+    }
+    // También guardar en localStorage
+    _origSave();
+    setSpStatus('connected');
+    showToast('Guardado en Firebase ✓', 'success');
+  } catch(e) {
+    setSpStatus('error');
+    showToast('Error al guardar: ' + e.message, 'error');
+    console.error('saveData error:', e);
   }
 };
+
+// ── Override markAllPresent con filtro de guardia y bloqueo lector ──
+const _origMarkAll = markAllPresent;
+window.markAllPresent = function() {
+  if (userRole === 'lector') {
+    showToast('No puedes editar — tu usuario es de tipo Lector', 'error');
+    return;
+  }
+  const guardia = document.getElementById('guardiaPresente')?.value || 'TODOS';
+  const dates = getWeekDates();
+  const today = dateStr(new Date());
+  let count = 0;
+  state.workers.forEach(w => {
+    if (guardia !== 'TODOS' && w.guardia !== guardia) return;
+    if (!state.attendance[w.id]) state.attendance[w.id] = {};
+    dates.forEach(d => {
+      const ds = dateStr(d);
+      if (ds <= today && !state.attendance[w.id][ds]) {
+        state.attendance[w.id][ds] = 'A';
+        count++;
+      }
+    });
+  });
+  renderTable();
+  const label = guardia === 'TODOS' ? 'todos los técnicos' : 'Guardia ' + guardia;
+  showToast(`${count} marcas aplicadas a ${label}`, 'success');
+};
+
+// ── Borrar marcas con rango de fechas ──
+window.openModalBorrar = function() {
+  if (userRole === 'lector') {
+    showToast('No puedes editar — tu usuario es de tipo Lector', 'error');
+    return;
+  }
+  document.getElementById('modalBorrar').classList.add('show');
+};
+
+window.doBorrarMarcas = function() {
+  const tipo  = document.getElementById('borrarTipo').value;
+  const desde = document.getElementById('borrarDesde').value;
+  const hasta = document.getElementById('borrarHasta').value;
+
+  let count = 0;
+  if (tipo === 'total') {
+    // Borrar todo
+    state.workers.forEach(w => {
+      count += Object.keys(state.attendance[w.id] || {}).length;
+      state.attendance[w.id] = {};
+    });
+  } else if (tipo === 'rango') {
+    if (!desde || !hasta) { showToast('Selecciona fechas de inicio y fin', 'error'); return; }
+    if (desde > hasta)    { showToast('La fecha de inicio debe ser anterior al fin', 'error'); return; }
+    state.workers.forEach(w => {
+      const att = state.attendance[w.id] || {};
+      Object.keys(att).forEach(ds => {
+        if (ds >= desde && ds <= hasta) {
+          delete att[ds];
+          count++;
+        }
+      });
+    });
+  } else if (tipo === 'semana') {
+    const dates = getWeekDates();
+    state.workers.forEach(w => {
+      dates.forEach(d => {
+        const ds = dateStr(d);
+        if ((state.attendance[w.id] || {})[ds]) {
+          delete state.attendance[w.id][ds];
+          count++;
+        }
+      });
+    });
+  }
+
+  closeModal('Borrar');
+  renderTable();
+  showToast(`${count} marcas eliminadas`, 'success');
+};
+
+
 
 // ── Indicador SP (reutilizado para Firebase) ──
 function setSpStatus(s) {
@@ -2314,6 +2417,10 @@ window.renderTable     = renderTable;
 window.doCambiarPass   = doCambiarPass;
 window.doLogin         = doLogin;
 window.doLogout        = doLogout;
+window.toggleBorrarFechas = function() {
+  const tipo = document.getElementById('borrarTipo').value;
+  document.getElementById('borrarFechas').style.display = tipo === 'rango' ? 'flex' : 'none';
+};
 
 </script>
 
@@ -2366,5 +2473,42 @@ window.doLogout        = doLogout;
     </div>
   </div>
 </div>
+<!-- MODAL BORRAR MARCAS -->
+<div class="modal-overlay" id="modal-Borrar">
+  <div class="modal" style="width:420px">
+    <div class="modal-head">
+      <span class="modal-title">🗑 Borrar marcas de asistencia</span>
+      <button class="modal-close" onclick="closeModal('Borrar')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label class="form-label">¿Qué deseas borrar?</label>
+        <select id="borrarTipo" class="form-input" onchange="toggleBorrarFechas()">
+          <option value="semana">Solo la semana visible</option>
+          <option value="rango">Rango de fechas</option>
+          <option value="total">Todo (borrar toda la asistencia)</option>
+        </select>
+      </div>
+      <div id="borrarFechas" style="display:none;gap:12px" class="form-row">
+        <div class="form-group">
+          <label class="form-label">Desde</label>
+          <input type="date" id="borrarDesde" class="form-input">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Hasta</label>
+          <input type="date" id="borrarHasta" class="form-input">
+        </div>
+      </div>
+      <div style="background:rgba(255,92,122,0.08);border:1px solid rgba(255,92,122,0.25);border-radius:8px;padding:10px 14px;font-size:12px;color:var(--c-red)">
+        ⚠️ Esta acción elimina las marcas del estado local. Para que también se elimine de Firebase, presiona Guardar después.
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeModal('Borrar')">Cancelar</button>
+      <button class="btn" style="background:var(--c-red);border-color:var(--c-red);color:#fff" onclick="doBorrarMarcas()">Borrar</button>
+    </div>
+  </div>
+</div>
+
 </body>
 </html>
