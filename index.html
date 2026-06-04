@@ -2125,20 +2125,31 @@ onAuthStateChanged(auth, async (user) => {
   }
 });
 
-// ── Sync desde Firebase ──
+// ── Sync desde Firebase — solo al login, nunca después de guardar ──
 async function syncFromFirebase() {
   try {
     setSpStatus('syncing');
+
     // Cargar técnicos
     const tecSnap = await getDocs(collection(db, 'tecnicos'));
     if (!tecSnap.empty) {
       state.workers = tecSnap.docs.map(d => ({ id: d.id, ...d.data() }));
     }
 
-    // Cargar asistencia de la semana actual
-    const dates   = getWeekDates();
-    const desde   = dateStr(dates[0]);
-    const hasta   = dateStr(dates[6]);
+    // Limpiar asistencia SOLO de la semana actual antes de cargar desde Firebase
+    const dates = getWeekDates();
+    const desde = dateStr(dates[0]);
+    const hasta = dateStr(dates[6]);
+
+    // Borrar solo los días de esta semana del state local
+    state.workers.forEach(w => {
+      if (!state.attendance[w.id]) state.attendance[w.id] = {};
+      dates.forEach(d => {
+        delete state.attendance[w.id][dateStr(d)];
+      });
+    });
+
+    // Cargar asistencia de la semana desde Firebase
     const attSnap = await getDocs(query(
       collection(db, 'asistencia'),
       where('fecha', '>=', desde),
@@ -2151,6 +2162,7 @@ async function syncFromFirebase() {
     });
 
     setSpStatus('connected');
+    renderTable();
     showToast('Sincronizado con Firebase ✓', 'success');
   } catch(e) {
     console.error('Firebase sync error:', e);
@@ -2212,8 +2224,8 @@ window.saveData = async function() {
     const dates = getWeekDates();
     for (const w of state.workers) {
       for (const d of dates) {
-        const ds    = dateStr(d);
-        const mark  = (state.attendance[w.id] || {})[ds];
+        const ds   = dateStr(d);
+        const mark = (state.attendance[w.id] || {})[ds];
         if (mark) {
           await setDoc(doc(db, 'asistencia', w.id + '_' + ds), {
             workerId: w.id, fecha: ds, marca: mark,
@@ -2230,6 +2242,7 @@ window.saveData = async function() {
       });
     }
     setSpStatus('connected');
+    // NO llamar syncFromFirebase aquí — mantener el state actual tal cual
     showToast('Guardado en Firebase ✓', 'success');
   } catch(e) {
     setSpStatus('error');
