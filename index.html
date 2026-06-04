@@ -1990,7 +1990,7 @@ function toggleTheme() {
 // ═══════════════════════════════════════════════
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.8.1/firebase-app.js";
 import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged, EmailAuthProvider, reauthenticateWithCredential, updatePassword } from "https://www.gstatic.com/firebasejs/11.8.1/firebase-auth.js";
-import { getFirestore, collection, doc, getDocs, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/11.8.1/firebase-firestore.js";
+import { getFirestore, collection, doc, getDocs, setDoc, getDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/11.8.1/firebase-firestore.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyAxaHBhc_tfg75B9C6RHM9H7On5H-vWBOE",
@@ -2211,12 +2211,16 @@ window.saveData = async function() {
       for (const d of dates) {
         const ds   = dateStr(d);
         const mark = (state.attendance[w.id] || {})[ds];
+        const docId = w.id + '_' + ds;
         if (mark) {
-          await setDoc(doc(db, 'asistencia', w.id + '_' + ds), {
+          await setDoc(doc(db, 'asistencia', docId), {
             workerId: w.id, fecha: ds, marca: mark,
             registradoPor: currentUser.email,
             timestamp: new Date().toISOString()
           });
+        } else {
+          // Sin marca → eliminar de Firebase si existía
+          try { await deleteDoc(doc(db, 'asistencia', docId)); } catch(e) {}
         }
       }
     }
@@ -2227,7 +2231,6 @@ window.saveData = async function() {
       });
     }
     setSpStatus('connected');
-    // NO llamar syncFromFirebase aquí — mantener el state actual tal cual
     showToast('Guardado en Firebase ✓', 'success');
   } catch(e) {
     setSpStatus('error');
