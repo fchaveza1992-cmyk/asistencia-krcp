@@ -1990,7 +1990,7 @@ function toggleTheme() {
 // ═══════════════════════════════════════════════
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.8.1/firebase-app.js";
 import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged, EmailAuthProvider, reauthenticateWithCredential, updatePassword } from "https://www.gstatic.com/firebasejs/11.8.1/firebase-auth.js";
-import { getFirestore, collection, doc, getDocs, setDoc, getDoc, query, where, orderBy } from "https://www.gstatic.com/firebasejs/11.8.1/firebase-firestore.js";
+import { getFirestore, collection, doc, getDocs, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/11.8.1/firebase-firestore.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyAxaHBhc_tfg75B9C6RHM9H7On5H-vWBOE",
@@ -2136,25 +2136,10 @@ async function syncFromFirebase() {
       state.workers = tecSnap.docs.map(d => ({ id: d.id, ...d.data() }));
     }
 
-    // Limpiar asistencia SOLO de la semana actual antes de cargar desde Firebase
-    const dates = getWeekDates();
-    const desde = dateStr(dates[0]);
-    const hasta = dateStr(dates[6]);
-
-    // Borrar solo los días de esta semana del state local
-    state.workers.forEach(w => {
-      if (!state.attendance[w.id]) state.attendance[w.id] = {};
-      dates.forEach(d => {
-        delete state.attendance[w.id][dateStr(d)];
-      });
-    });
-
-    // Cargar asistencia de la semana desde Firebase
-    const attSnap = await getDocs(query(
-      collection(db, 'asistencia'),
-      where('fecha', '>=', desde),
-      where('fecha', '<=', hasta)
-    ));
+    // Cargar TODA la asistencia de Firebase (sin filtro de fecha)
+    // Esto evita problemas de índices compuestos en Firestore
+    state.attendance = {};
+    const attSnap = await getDocs(collection(db, 'asistencia'));
     attSnap.docs.forEach(d => {
       const data = d.data();
       if (!state.attendance[data.workerId]) state.attendance[data.workerId] = {};
